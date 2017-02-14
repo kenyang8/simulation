@@ -1,0 +1,7 @@
+Usage:  mobgen <number of nodes>
+               <max-x> <max-y> <end time>
+               <speed mean> <speed delta>
+               <pause time> <pause time delta>
+               <'N' or 'G'>
+               'N' implies NS2 mobility file
+               'G' implies gnuplot path file

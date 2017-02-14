@@ -1,0 +1,847 @@
+result;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * TclTraceDictPath --
+ *
+ *	Trace through a tree of dictionaries using the array of keys given. If
+ *	the flags argument has the DICT_PATH_UPDATE flag is set, a
+ *	backward-pointing chain of dictionaries is also built (in the Dict's
+ *	chain field) and the chained dictionaries are made into unshared
+ *	dictionaries (if they aren't already.)
+ *
+ * Results:
+ *	The object at the end of the path, or NULL if there was an error. Note
+ *	that this it is an error for an intermediate dictionary on the path to
+ *	not exist. If the flags argument has the DICT_PATH_EXISTS set, a
+ *	non-existent path gives a DICT_PATH_NON_EXISTENT result.
+ *
+ * Side effects:
+ *	If the flags argument is zero or DICT_PATH_EXISTS, there are no side
+ *	effects (other than potential conversion of objects to dictionaries.)
+ *	If the flags argument is DICT_PATH_UPDATE, the following additional
+ *	side effects occur. Shared dictionaries along the path are converted
+ *	into unshared objects, and a backward-pointing chain is built using
+ *	the chain fields of the dictionaries (for easy invalidation of string
+ *	representations using InvalidateDictChain). If the flags argument has
+ *	the DICT_PATH_CREATE bits set (and not the DICT_PATH_EXISTS bit),
+ *	non-existant keys will be inserted with a value of an empty
+ *	dictionary, resulting in the path being built.
+ *
+ *----------------------------------------------------------------------
+ */
+
+Tcl_Obj *
+TclTraceDictPath(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    int keyc,
+    Tcl_Obj *const keyv[],
+    int flags)
+{
+    Dict *dict, *newDict;
+    int i;
+
+    if (dictPtr->typePtr != &tclDictType) {
+	if (SetDictFromAny(interp, dictPtr) != TCL_OK) {
+	    return NULL;
+	}
+    }
+    dict = dictPtr->internalRep.otherValuePtr;
+    if (flags & DICT_PATH_UPDATE) {
+	dict->chain = NULL;
+    }
+
+    for (i=0 ; i<keyc ; i++) {
+	Tcl_HashEntry *hPtr = Tcl_FindHashEntry(&dict->table, (char *)keyv[i]);
+	Tcl_Obj *tmpObj;
+
+	if (hPtr == NULL) {
+	    int isNew;			/* Dummy */
+
+	    if (flags & DICT_PATH_EXISTS) {
+		return DICT_PATH_NON_EXISTENT;
+	    }
+	    if ((flags & DICT_PATH_CREATE) != DICT_PATH_CREATE) {
+		if (interp != NULL) {
+		    Tcl_ResetResult(interp);
+		    Tcl_AppendResult(interp, "key \"", TclGetString(keyv[i]),
+			    "\" not known in dictionary", NULL);
+		    Tcl_SetErrorCode(interp, "TCL", "LOOKUP", "DICT",
+			    TclGetString(keyv[i]), NULL);
+		}
+		return NULL;
+	    }
+
+	    /*
+	     * The next line should always set isNew to 1.
+	     */
+
+	    hPtr = CreateChainEntry(dict, keyv[i], &isNew);
+	    tmpObj = Tcl_NewDictObj();
+	    Tcl_IncrRefCount(tmpObj);
+	    Tcl_SetHashValue(hPtr, tmpObj);
+	} else {
+	    tmpObj = Tcl_GetHashValue(hPtr);
+	    if (tmpObj->typePtr != &tclDictType) {
+		if (SetDictFromAny(interp, tmpObj) != TCL_OK) {
+		    return NULL;
+		}
+	    }
+	}
+
+	newDict = tmpObj->internalRep.otherValuePtr;
+	if (flags & DICT_PATH_UPDATE) {
+	    if (Tcl_IsShared(tmpObj)) {
+		TclDecrRefCount(tmpObj);
+		tmpObj = Tcl_DuplicateObj(tmpObj);
+		Tcl_IncrRefCount(tmpObj);
+		Tcl_SetHashValue(hPtr, (ClientData) tmpObj);
+		dict->epoch++;
+		newDict = tmpObj->internalRep.otherValuePtr;
+	    }
+
+	    newDict->chain = dictPtr;
+	}
+	dict = newDict;
+	dictPtr = tmpObj;
+    }
+    return dictPtr;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * InvalidateDictChain --
+ *
+ *	Go through a dictionary chain (built by an updating invokation of
+ *	TclTraceDictPath) and invalidate the string representations of all the
+ *	dictionaries on the chain.
+ *
+ * Results:
+ *	None
+ *
+ * Side effects:
+ *	String reps are invalidated and epoch counters (for detecting illegal
+ *	concurrent modifications) are updated through the chain of updated
+ *	dictionaries.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static void
+InvalidateDictChain(
+    Tcl_Obj *dictObj)
+{
+    Dict *dict = dictObj->internalRep.otherValuePtr;
+
+    do {
+	Tcl_InvalidateStringRep(dictObj);
+	dict->epoch++;
+	dictObj = dict->chain;
+	if (dictObj == NULL) {
+	    break;
+	}
+	dict->chain = NULL;
+	dict = dictObj->internalRep.otherValuePtr;
+    } while (dict != NULL);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjPut --
+ *
+ *	Add a key,value pair to a dictionary, or update the value for a key if
+ *	that key already has a mapping in the dictionary.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	The object pointed to by dictPtr is converted to a dictionary if it is
+ *	not already one, and any string representation that it has is
+ *	invalidated.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjPut(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    Tcl_Obj *keyPtr,
+    Tcl_Obj *valuePtr)
+{
+    Dict *dict;
+    Tcl_HashEntry *hPtr;
+    int isNew;
+
+    if (Tcl_IsShared(dictPtr)) {
+	Tcl_Panic("%s called with shared object", "Tcl_DictObjPut");
+    }
+
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    if (dictPtr->bytes != NULL) {
+	Tcl_InvalidateStringRep(dictPtr);
+    }
+    dict = dictPtr->internalRep.otherValuePtr;
+    hPtr = CreateChainEntry(dict, keyPtr, &isNew);
+    Tcl_IncrRefCount(valuePtr);
+    if (!isNew) {
+	Tcl_Obj *oldValuePtr = Tcl_GetHashValue(hPtr);
+
+	TclDecrRefCount(oldValuePtr);
+    }
+    Tcl_SetHashValue(hPtr, valuePtr);
+    dict->epoch++;
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjGet --
+ *
+ *	Given a key, get its value from the dictionary (or NULL if key is not
+ *	found in dictionary.)
+ *
+ * Results:
+ *	A standard Tcl result. The variable pointed to by valuePtrPtr is
+ *	updated with the value for the key. Note that it is not an error for
+ *	the key to have no mapping in the dictionary.
+ *
+ * Side effects:
+ *	The object pointed to by dictPtr is converted to a dictionary if it is
+ *	not already one.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjGet(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    Tcl_Obj *keyPtr,
+    Tcl_Obj **valuePtrPtr)
+{
+    Dict *dict;
+    Tcl_HashEntry *hPtr;
+
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    dict = dictPtr->internalRep.otherValuePtr;
+    hPtr = Tcl_FindHashEntry(&dict->table, (char *) keyPtr);
+    if (hPtr == NULL) {
+	*valuePtrPtr = NULL;
+    } else {
+	*valuePtrPtr = Tcl_GetHashValue(hPtr);
+    }
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjRemove --
+ *
+ *	Remove the key,value pair with the given key from the dictionary; the
+ *	key does not need to be present in the dictionary.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	The object pointed to by dictPtr is converted to a dictionary if it is
+ *	not already one, and any string representation that it has is
+ *	invalidated.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjRemove(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    Tcl_Obj *keyPtr)
+{
+    Dict *dict;
+
+    if (Tcl_IsShared(dictPtr)) {
+	Tcl_Panic("%s called with shared object", "Tcl_DictObjRemove");
+    }
+
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    if (dictPtr->bytes != NULL) {
+	Tcl_InvalidateStringRep(dictPtr);
+    }
+    dict = dictPtr->internalRep.otherValuePtr;
+    if (DeleteChainEntry(dict, keyPtr)) {
+	dict->epoch++;
+    }
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjSize --
+ *
+ *	How many key,value pairs are there in the dictionary?
+ *
+ * Results:
+ *	A standard Tcl result. Updates the variable pointed to by sizePtr with
+ *	the number of key,value pairs in the dictionary.
+ *
+ * Side effects:
+ *	The dictPtr object is converted to a dictionary type if it is not a
+ *	dictionary already.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjSize(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    int *sizePtr)
+{
+    Dict *dict;
+
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    dict = dictPtr->internalRep.otherValuePtr;
+    *sizePtr = dict->table.numEntries;
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjFirst --
+ *
+ *	Start a traversal of the dictionary. Caller must supply the search
+ *	context, pointers for returning key and value, and a pointer to allow
+ *	indication of whether the dictionary has been traversed (i.e. the
+ *	dictionary is empty). The order of traversal is undefined.
+ *
+ * Results:
+ *	A standard Tcl result. Updates the variables pointed to by keyPtrPtr,
+ *	valuePtrPtr and donePtr. Either of keyPtrPtr and valuePtrPtr may be
+ *	NULL, in which case the key/value is not made available to the caller.
+ *
+ * Side effects:
+ *	The dictPtr object is converted to a dictionary type if it is not a
+ *	dictionary already. The search context is initialised if the search
+ *	has not finished. The dictionary's internal rep is Tcl_Preserve()d if
+ *	the dictionary has at least one element.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjFirst(
+    Tcl_Interp *interp,		/* For error messages, or NULL if no error
+				 * messages desired. */
+    Tcl_Obj *dictPtr,		/* Dictionary to traverse. */
+    Tcl_DictSearch *searchPtr,	/* Pointer to a dict search context. */
+    Tcl_Obj **keyPtrPtr,	/* Pointer to a variable to have the first key
+				 * written into, or NULL. */
+    Tcl_Obj **valuePtrPtr,	/* Pointer to a variable to have the first
+				 * value written into, or NULL.*/
+    int *donePtr)		/* Pointer to a variable which will have a 1
+				 * written into when there are no further
+				 * values in the dictionary, or a 0
+				 * otherwise. */
+{
+    Dict *dict;
+    ChainEntry *cPtr;
+
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    dict = dictPtr->internalRep.otherValuePtr;
+    cPtr = dict->entryChainHead;
+    if (cPtr == NULL) {
+	searchPtr->epoch = -1;
+	*donePtr = 1;
+    } else {
+	*donePtr = 0;
+	searchPtr->dictionaryPtr = (Tcl_Dict) dict;
+	searchPtr->epoch = dict->epoch;
+	searchPtr->next = cPtr->nextPtr;
+	dict->refcount++;
+	if (keyPtrPtr != NULL) {
+	    *keyPtrPtr = (Tcl_Obj *) Tcl_GetHashKey(&dict->table,
+		    &cPtr->entry);
+	}
+	if (valuePtrPtr != NULL) {
+	    *valuePtrPtr = Tcl_GetHashValue(&cPtr->entry);
+	}
+    }
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjNext --
+ *
+ *	Continue a traversal of a dictionary previously started with
+ *	Tcl_DictObjFirst. This function is safe against concurrent
+ *	modification of the underlying object (including type shimmering),
+ *	treating such situations as if the search has terminated, though it is
+ *	up to the caller to ensure that the object itself is not disposed
+ *	until the search has finished. It is _not_ safe against modifications
+ *	from other threads.
+ *
+ * Results:
+ *	Updates the variables pointed to by keyPtrPtr, valuePtrPtr and
+ *	donePtr. Either of keyPtrPtr and valuePtrPtr may be NULL, in which
+ *	case the key/value is not made available to the caller.
+ *
+ * Side effects:
+ *	Removes a reference to the dictionary's internal rep if the search
+ *	terminates.
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+Tcl_DictObjNext(
+    Tcl_DictSearch *searchPtr,	/* Pointer to a hash search context. */
+    Tcl_Obj **keyPtrPtr,	/* Pointer to a variable to have the first key
+				 * written into, or NULL. */
+    Tcl_Obj **valuePtrPtr,	/* Pointer to a variable to have the first
+				 * value written into, or NULL.*/
+    int *donePtr)		/* Pointer to a variable which will have a 1
+				 * written into when there are no further
+				 * values in the dictionary, or a 0
+				 * otherwise. */
+{
+    ChainEntry *cPtr;
+
+    /*
+     * If the searh is done; we do no work.
+     */
+
+    if (searchPtr->epoch == -1) {
+	*donePtr = 1;
+	return;
+    }
+
+    /*
+     * Bail out if the dictionary has had any elements added, modified or
+     * removed. This *shouldn't* happen, but...
+     */
+
+    if (((Dict *)searchPtr->dictionaryPtr)->epoch != searchPtr->epoch) {
+	Tcl_Panic("concurrent dictionary modification and search");
+    }
+
+    cPtr = searchPtr->next;
+    if (cPtr == NULL) {
+	Tcl_DictObjDone(searchPtr);
+	*donePtr = 1;
+	return;
+    }
+
+    searchPtr->next = cPtr->nextPtr;
+    *donePtr = 0;
+    if (keyPtrPtr != NULL) {
+	*keyPtrPtr = (Tcl_Obj *) Tcl_GetHashKey(
+		&((Dict *)searchPtr->dictionaryPtr)->table, &cPtr->entry);
+    }
+    if (valuePtrPtr != NULL) {
+	*valuePtrPtr = Tcl_GetHashValue(&cPtr->entry);
+    }
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjDone --
+ *
+ *	Call this if you want to stop a search before you reach the end of the
+ *	dictionary (e.g. because of abnormal termination of the search). It
+ *	need not be used if the search reaches its natural end (i.e. if either
+ *	Tcl_DictObjFirst or Tcl_DictObjNext sets its donePtr variable to 1).
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	Removes a reference to the dictionary's internal rep.
+ *
+ *----------------------------------------------------------------------
+ */
+
+void
+Tcl_DictObjDone(
+    Tcl_DictSearch *searchPtr)		/* Pointer to a hash search context. */
+{
+    Dict *dict;
+
+    if (searchPtr->epoch != -1) {
+	searchPtr->epoch = -1;
+	dict = (Dict *) searchPtr->dictionaryPtr;
+	dict->refcount--;
+	if (dict->refcount <= 0) {
+	    DeleteDict(dict);
+	}
+    }
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjPutKeyList --
+ *
+ *	Add a key...key,value pair to a dictionary tree. The main dictionary
+ *	value must not be shared, though sub-dictionaries may be. All
+ *	intermediate dictionaries on the path must exist.
+ *
+ * Results:
+ *	A standard Tcl result. Note that in the error case, a message is left
+ *	in interp unless that is NULL.
+ *
+ * Side effects:
+ *	If the dictionary and any of its sub-dictionaries on the path have
+ *	string representations, these are invalidated.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjPutKeyList(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    int keyc,
+    Tcl_Obj *const keyv[],
+    Tcl_Obj *valuePtr)
+{
+    Dict *dict;
+    Tcl_HashEntry *hPtr;
+    int isNew;
+
+    if (Tcl_IsShared(dictPtr)) {
+	Tcl_Panic("%s called with shared object", "Tcl_DictObjPutKeyList");
+    }
+    if (keyc < 1) {
+	Tcl_Panic("%s called with empty key list", "Tcl_DictObjPutKeyList");
+    }
+
+    dictPtr = TclTraceDictPath(interp, dictPtr, keyc-1,keyv, DICT_PATH_CREATE);
+    if (dictPtr == NULL) {
+	return TCL_ERROR;
+    }
+
+    dict = dictPtr->internalRep.otherValuePtr;
+    hPtr = CreateChainEntry(dict, keyv[keyc-1], &isNew);
+    Tcl_IncrRefCount(valuePtr);
+    if (!isNew) {
+	Tcl_Obj *oldValuePtr = Tcl_GetHashValue(hPtr);
+	TclDecrRefCount(oldValuePtr);
+    }
+    Tcl_SetHashValue(hPtr, valuePtr);
+    InvalidateDictChain(dictPtr);
+
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DictObjRemoveKeyList --
+ *
+ *	Remove a key...key,value pair from a dictionary tree (the value
+ *	removed is implicit in the key path). The main dictionary value must
+ *	not be shared, though sub-dictionaries may be. It is not an error if
+ *	there is no value associated with the given key list, but all
+ *	intermediate dictionaries on the key path must exist.
+ *
+ * Results:
+ *	A standard Tcl result. Note that in the error case, a message is left
+ *	in interp unless that is NULL.
+ *
+ * Side effects:
+ *	If the dictionary and any of its sub-dictionaries on the key path have
+ *	string representations, these are invalidated.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Tcl_DictObjRemoveKeyList(
+    Tcl_Interp *interp,
+    Tcl_Obj *dictPtr,
+    int keyc,
+    Tcl_Obj *const keyv[])
+{
+    Dict *dict;
+
+    if (Tcl_IsShared(dictPtr)) {
+	Tcl_Panic("%s called with shared object", "Tcl_DictObjRemoveKeyList");
+    }
+    if (keyc < 1) {
+	Tcl_Panic("%s called with empty key list", "Tcl_DictObjRemoveKeyList");
+    }
+
+    dictPtr = TclTraceDictPath(interp, dictPtr, keyc-1,keyv, DICT_PATH_UPDATE);
+    if (dictPtr == NULL) {
+	return TCL_ERROR;
+    }
+
+    dict = dictPtr->internalRep.otherValuePtr;
+    DeleteChainEntry(dict, keyv[keyc-1]);
+    InvalidateDictChain(dictPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_NewDictObj --
+ *
+ *	This function is normally called when not debugging: i.e., when
+ *	TCL_MEM_DEBUG is not defined. It creates a new dict object without any
+ *	content.
+ *
+ *	When TCL_MEM_DEBUG is defined, this function just returns the result
+ *	of calling the debugging version Tcl_DbNewDictObj.
+ *
+ * Results:
+ *	A new dict object is returned; it has no keys defined in it. The new
+ *	object's string representation is left NULL, and the ref count of the
+ *	object is 0.
+ *
+ * Side Effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+Tcl_Obj *
+Tcl_NewDictObj(void)
+{
+#ifdef TCL_MEM_DEBUG
+    return Tcl_DbNewDictObj("unknown", 0);
+#else /* !TCL_MEM_DEBUG */
+
+    Tcl_Obj *dictPtr;
+    Dict *dict;
+
+    TclNewObj(dictPtr);
+    Tcl_InvalidateStringRep(dictPtr);
+    dict = (Dict *) ckalloc(sizeof(Dict));
+    InitChainTable(dict);
+    dict->epoch = 0;
+    dict->chain = NULL;
+    dict->refcount = 1;
+    dictPtr->internalRep.otherValuePtr = dict;
+    dictPtr->typePtr = &tclDictType;
+    return dictPtr;
+#endif
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Tcl_DbNewDictObj --
+ *
+ *	This function is normally called when debugging: i.e., when
+ *	TCL_MEM_DEBUG is defined. It creates new dict objects. It is the same
+ *	as the Tcl_NewDictObj function above except that it calls
+ *	Tcl_DbCkalloc directly with the file name and line number from its
+ *	caller. This simplifies debugging since then the [memory active]
+ *	command will report the correct file name and line number when
+ *	reporting objects that haven't been freed.
+ *
+ *	When TCL_MEM_DEBUG is not defined, this function just returns the
+ *	result of calling Tcl_NewDictObj.
+ *
+ * Results:
+ *	A new dict object is returned; it has no keys defined in it. The new
+ *	object's string representation is left NULL, and the ref count of the
+ *	object is 0.
+ *
+ * Side Effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+Tcl_Obj *
+Tcl_DbNewDictObj(
+    const char *file,
+    int line)
+{
+#ifdef TCL_MEM_DEBUG
+    Tcl_Obj *dictPtr;
+    Dict *dict;
+
+    TclDbNewObj(dictPtr, file, line);
+    Tcl_InvalidateStringRep(dictPtr);
+    dict = (Dict *) ckalloc(sizeof(Dict));
+    InitChainTable(dict);
+    dict->epoch = 0;
+    dict->chain = NULL;
+    dict->refcount = 1;
+    dictPtr->internalRep.otherValuePtr = dict;
+    dictPtr->typePtr = &tclDictType;
+    return dictPtr;
+#else /* !TCL_MEM_DEBUG */
+    return Tcl_NewDictObj();
+#endif
+}
+
+/***** START OF FUNCTIONS IMPLEMENTING TCL COMMANDS *****/
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictCreateCmd --
+ *
+ *	This function implements the "dict create" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictCreateCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictObj;
+    int i;
+
+    /*
+     * Must have an even number of arguments; note that number of preceding
+     * arguments (i.e. "dict create" is also even, which makes this much
+     * easier.)
+     */
+
+    if ((objc & 1) == 0) {
+	Tcl_WrongNumArgs(interp, 1, objv, "?key value ...?");
+	return TCL_ERROR;
+    }
+
+    dictObj = Tcl_NewDictObj();
+    for (i=1 ; i<objc ; i+=2) {
+	/*
+	 * The next command is assumed to never fail...
+	 */
+	Tcl_DictObjPut(interp, dictObj, objv[i], objv[i+1]);
+    }
+    Tcl_SetObjResult(interp, dictObj);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictGetCmd --
+ *
+ *	This function implements the "dict get" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictGetCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr, *valuePtr = NULL;
+    int result;
+
+    if (objc < 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary ?key key ...?");
+	return TCL_ERROR;
+    }
+
+    /*
+     * Test for the special case of no keys, which returns a *list* of all
+     * key,value pairs. We produce a copy here because that makes subsequent
+     * list handling more efficient.
+     */
+
+    if (objc == 2) {
+	Tcl_Obj *keyPtr, *listPtr;
+	Tcl_DictSearch search;
+	int done;
+
+	result = Tcl_DictObjFirst(interp, objv[1], &search,
+		&keyPtr, &valuePtr, &done);
+	if (result != TCL_OK) {
+	    return result;
+	}
+	listPtr = Tcl_NewListObj(0, NULL);
+	while (!done) {
+	    /*
+	     * Assume these won't fail as we have complete control over the
+	     * types of things here.
+	     */
+
+	    Tcl_ListObjAppendElement(interp, listPtr, keyPtr);
+	    Tcl_ListObjAppendElement(interp, listPtr, valuePtr);
+
+	    Tcl_DictObjNext(&search, &keyPtr, &valuePtr, &done);
+	}
+	Tcl_SetObjResult(interp, listPtr);
+	return TCL_OK;
+    }
+
+    /*
+     * Loop through the list of keys, looking up the key at the current index
+     * in the current dicti

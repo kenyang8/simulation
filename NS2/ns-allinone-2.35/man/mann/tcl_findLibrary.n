@@ -1,0 +1,503 @@
+enever newvaluePtr had
+	refCount 0 and was used for appending (but not lappending). Thanks to
+	mistachkin and kbk. [Bug 1710710]
+
+2007-05-01  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclIO.c (DeleteChannelTable): Made changes so that
+	DeleteChannelTable tries to close all open channels, not just the
+	first. [Bug 1710285]
+	* generic/tclThread.c (TclFinalizeSynchronization): Make sure that TSD
+	blocks get freed on non-threaded builds. [Bug 1710825]
+	* tests/utf.test (utf-25.1--utf-25.4): Modified tests to clean up
+	after the 'testobj' extension to avoid spurious reports of memory
+	leaks.
+
+2007-05-01  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdMZ.c (STR_MAP): When [string map] has a pure dict map,
+	a missing Tcl_DictObjDone() call led to a memleak. [Bug 1710709]
+
+2007-04-30  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/Makefile.in: add 'tclsh' dependency to install targets that
+	rely on tclsh, fixes parallel 'make install' from empty build dir.
+
+2007-04-30  Andreas Kupries <andreask@gactivestate.com>
+
+	* generic/tclIO.c (FixLevelCode): Corrected reference count
+	mismanagement of newlevel, newcode. Changed to allocate the Tcl_Obj's
+	as late as possible, and only when actually needed. [Bug 1705778, leak
+	K29]
+
+2007-04-30  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclProc.c (Tcl_ProcObjCmd, SetLambdaFromAny): Corrected
+	reference count mismanagement on the name of the source file in the
+	TIP 280 code. [Bug 1705778, leak K02 among other manifestations]
+
+2007-04-25  Donal K. Fellows  <dkf@users.sf.net>
+
+	*** 8.5a6 TAGGED FOR RELEASE ***
+
+	* generic/tclProc.c (TclObjInterpProcCore): Only allocate objects for
+	error message generation when associated with argument names that are
+	really used. [Bug 1705778, leak K15]
+
+2007-04-25  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclIOUtil.c (Tcl_FSChdir): Changed the memory management so
+	that the path returned from Tcl_FSGetNativePath is not duplicated
+	before being stored as the current directory, to avoid a memory leak.
+	[Bug 1705778, leak K01 among other manifestations]
+
+2007-04-25  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c (ParseExpr):	Revised to be sure that an
+	error return doesn't prevent all literals getting placed on the
+	litList to be returned to the caller for freeing. Corrects some
+	memleaks. [Bug 1705778, leak K23]
+
+2007-04-25  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/Makefile.in (dist): add macosx/*.xcconfig files to src dist;
+	copy license.terms to dist macosx dir; fix autoheader bits.
+
+2007-04-24  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclListObj.c: reverting [Patch 738900] (committed on
+	2007-04-20). Causes some Tk test breakage of unknown importance, but
+	the impact of the patch itself is likely to be so small that it does
+	not warrant investigation at this time.
+
+2007-04-24  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclDictObj.c (DictKeysCmd): Rewrote so that the lock on the
+	internal representation of a dict is only set when necessary. [Bug
+	1705778, leak K04]
+	(DictFilterCmd): Added code to drop the lock in the trivial match
+	case. [Bug 1705778, leak K05]
+
+2007-04-24  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclBinary.c: Addressed several code paths where the error
+	return from the 'binary format' command leaked the result buffer.
+	* generic/tclListObj.c (TclLsetFlat): Fixed a bug where the new list
+	under construction was leaked in the error case. [Bug 1705778, leaks
+	K13 and K14]
+
+2007-04-24  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* unix/Makefile.in (dist): add platform library package to src dist
+
+2007-04-24  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c (ParseExpr): Memory leak in error case; the
+	literal Tcl_Obj was not getting freed. [Bug 1705778, leak #1 (new)]
+
+	* generic/tclNamesp.c (Tcl_DeleteNamespace):	Corrected flaw in the
+	flag marking scheme to be sure that global namespaces are freed when
+	their interp is deleted. [Bug 1705778]
+
+2007-04-24  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclExecute.c (TclExecuteByteCode): Plugged six memory leaks
+	in bignum arithmetic.
+	* generic/tclIOCmd.c (Tcl_ReadObjCmd): Plugged a leak of the buffer
+	object if the physical read returned an error and the bypass area had
+	no message.
+	* generic/tclIORChan.c (TclChanCreateObjCmd): Plugged a leak of the
+	return value from the "initialize" method of a channel handler.
+	(All of the above under [Bug 1705778])
+
+2007-04-23  Daniel Steffen  <das@users.sourceforge.net>
+
+	* generic/tclCkalloc.c: fix warnings from gcc build configured with
+	* generic/tclCompile.c: --enable-64bit --enable-symbols=all.
+	* generic/tclExecute.c:
+
+	* unix/tclUnixFCmd.c: add workaround for crashing bug in fts_open()
+	* unix/tclUnixInit.c: without FTS_NOSTAT on 64bit Darwin 8 or earlier.
+
+	* unix/tclLoadDyld.c (TclpLoadMemory): fix (void*) arithmetic.
+
+	* macosx/Tcl-Common.xcconfig: enable more warnings.
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: add 'DebugMemCompile' build
+	configuration that calls configure with --enable-symbols=all; override
+	configure check for __attribute__((__visibility__("hidden"))) in Debug
+	configuration to restore availability of ZeroLink.
+
+	* macosx/tclMacOSXNotify.c: fix warnings.
+
+	* macosx/tclMacOSXFCmd.c: const fixes.
+
+	* macosx/Tcl-Common.xcconfig:	fix whitespace.
+	* macosx/Tcl-Debug.xcconfig:
+	* macosx/Tcl-Release.xcconfig:
+	* macosx/README:
+
+	* macosx/GNUmakefile:		fix/add copyright and license refs.
+	* macosx/tclMacOSXBundle.c:
+	* macosx/Tcl-Info.plist.in:
+	* macosx/Tcl.xcode/project.pbxproj:
+	* macosx/Tcl.xcodeproj/project.pbxproj:
+
+	* unix/configure.in: install license.terms into Tcl.framework.
+	* unix/configure: autoconf-2.59
+
+2007-04-23  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclVar.c (UnsetVarStruct):	Make sure the
+	TCL_INTERP_DESTROYED flags gets passed to unset trace routines so they
+	can respond appropriately. [Bug 1705778, leak #9]
+
+2007-04-23  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCompile.c (TclFreeCompileEnv): Tip 280's new field
+	extCmdMapPtr was not being freed. [Bug 1705778, leak #1]
+
+2007-04-23  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclCompCmds.c (TclCompileUpvarCmd): Plugged a memory leak in
+	'upvar' when compiling (a) upvar outside a proc, (b) upvar with a
+	syntax error, or (c) upvar where the frame index is not known at
+	compile time.
+	* generic/tclCompExpr.c (ParseExpr): Plugged a memory leak when
+	parsing expressions that contain syntax errors.
+	* generic/tclEnv.c (ReplaceString): Clear memory correctly when
+	growing the cache to avoid reads of uninitialised data.
+	* generic/tclIORChan.c (TclChanCreateObjCmd, FreeReflectedChannel):
+	Plugged two memory leaks.
+	* generic/tclStrToD.c (AccumulateDecimalDigit): Fixed a mistake where
+	we'd run beyond the end of the 'pow10_wide' array if a number begins
+	with a string of more than 'maxpow10_wide' zeroes.
+	* generic/tclTest.c (Testregexpobjcmd): Removed an invalid access
+	beyond the end of 'objv' in 'testregexp -about'.
+	All of these issues reported under [Bug 1705778] - detected with the
+	existing test suite, no new regression tests required.
+
+2007-04-22  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclVar.c (TclDeleteNamespaceVars): fixed access to freed
+	memory detected by valgrind: Tcl_GetCurrentNamespace was being
+	called after freeing root CallFrame (on interp deletion).
+
+2007-04-20  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclListObj.c (SetListFromAny): avoid discarding internal
+	reps of objects converted to singleton lists. [Patch 738900]
+
+2007-04-20  Kevin B. Kenny  <kennykb@acm.org>
+
+	* doc/clock.n: Corrected a silly error (transposed 'uppercase' and
+	'lowercase' in clock.n. [Bug 1656002]
+	Clarified that [clock scan] does not recognize a locale's alternative
+	calendar.
+	Deleted an entirely superfluous (and also incorrect) remark about the
+	effect of Daylight Saving Time on relative times in [clock scan]. [Bug
+	1582951]
+	* library/clock.tcl: Corrected an error in skipping over the %Ey field
+	on input.
+	* library/msgs/ja.msg:
+	* tools/loadICU.tcl: Corrected several localisation faults in the
+	Japanese locale (most notably, incorrect dates for the Emperors'
+	eras). [Bug 1637471]. Many thanks to SourceForge user 'nyademo' for
+	pointing this out and developing a fix.
+	* generic/tclPathObj.c: Corrected a 'const'ness fault that caused
+	bitter complaints from MSVC.
+	* tests/clock.test (clock-40.1, clock-58.1, clock-59.1): Corrected a
+	test case that depended on ":localtime" being able to handle dates
+	prior to the Posix epoch. [Bug 1618445] Added a test case for the
+	dates of the Japanese emperors. [Bug 1637471] Added a regression test
+	for military time zone input conversion. [Bug 1586828]
+	* generic/tclGetDate.y (MilitaryTable): Fixed an ancient bug where the
+	military NZA time zones had the signs reversed. [Bug 1586828]
+	* generic/tclDate.c: Regenerated.
+	* doc/Notifier.3: Documented Tcl_SetNotifier and Tcl_ServiceModeHook.
+	Quite against my better judgment. [Bug 414933]
+	* generic/tclBasic.c, generic/tclCkalloc.c, generic/tclClock.c:
+	* generic/tclCmdIL.c, generic/tclCmdMZ.c, generic/tclFCmd.c:
+	* generic/tclFileName.c, generic/tclInterp.c, generic/tclIO.c:
+	* generic/tclIOUtil.c, generic/tclNamesp.c, generic/tclObj.c:
+	* generic/tclPathObj.c, generic/tclPipe.c, generic/tclPkg.c:
+	* generic/tclResult.c, generic/tclTest.c, generic/tclTestObj.c:
+	* generic/tclVar.c, unix/tclUnixChan.c, unix/tclUnixTest.c:
+	* win/tclWinLoad.c, win/tclWinSerial.c: Replaced commas in varargs
+	with string concatenation where possible. [Patch 1515234]
+	* library/tzdata/America/Tegucigalpa:
+	* library/tzdata/Asia/Damascus: Olson's tzdata 2007e.
+
+2007-04-19  Donal K. Fellows  <donal.k.fellows@manchester.ac.uk>
+
+	* generic/regcomp.c, generic/regc_cvec.c, generic/regc_lex.c,
+	* generic/regc_locale.c: Improve the const-correctness of the RE
+	compiler.
+
+2007-04-18  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (INST_LSHIFT): fixed a mistake introduced in
+	version 1.266 ('=' became '=='), which effectively turned the block
+	that handles native shifts into dead code. This explains why the
+	testsuite did not pick this mistake. Rewrote to make the intention
+	clear.
+
+	* generic/tclInt.h (TclDecrRefCount): change the order of the
+	branches, use empty 'if ; else' to handle use in unbraced outer
+	if/else conditions (as already done in tcl.h)
+
+	* generic/tclExecute.c: slight changes in Tcl_Obj management.
+
+2007-04-17  Kevin B. Kenny  <kennykb@acm.org>
+
+	* library/clock.tcl: Fixed the naming of
+	::tcl::clock::ReadZoneinfoFile because (yoicks!) it was in the global
+	namespace.
+	* doc/clock.n: Clarified the cases in which legacy time zone is
+	recognized. [Bug 1656002]
+
+2007-04-17  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: fixed checkInterp logic [Bug 1702212]
+
+2007-04-16  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* various (including generic/tclTest.c): Complete the purge of K&R
+	function definitions from manually-written code.
+
+2007-04-15  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclCompCmds.c: added a cast to silence a compiler error on
+	VC2005.
+	* library/clock.tcl: Restored unique-prefix matching of keywords on
+	the [clock] command. [Bug 1690041]
+	* tests/clock.test: Added rudimentary test cases for unique-prefix
+	matching of keywords.
+
+2007-04-14  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: removed some code at INST_EXPAND_SKTOP that
+	duplicates functionality already present at checkForCatch.
+
+2007-04-12  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: new macros OBJ_AT_TOS, OBJ_UNDER_TOS,
+	OBJ_AT_DEPTH(n) and CURR_DEPTH that remove all direct references to
+	tosPtr from TEBC (after initialisation and the code at the label
+	cleanupV_pushObjResultPtr).
+
+2007-04-11  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCompCmds.c: moved all exceptDepth management to the
+	macros - the decreasing half was managed by hand.
+
+2007-04-10  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclInt.h (TclNewLiteralStringObj): New macro to make
+	allocating literal string objects (i.e. objects whose value is a
+	constant string) easier and more efficient, by allowing the omission
+	of the length argument. Based on [Patch 1529526] (afredd)
+	* generic/*.c: Make use of this (in many files).
+
+2007-04-08  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCompile (tclInstructionTable): Fixed bugs in description
+	of dict instructions.
+
+2007-04-07  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCompile (tclInstructionTable): Fixed bug in description
+	of INST_START_COMMAND.
+
+	* generic/tclExecute.c (TEBC): Small code reduction.
+
+2007-04-06  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (TEBC):
+	* generic/tclNamespace.c (NsEnsembleImplementationCmd):
+	* generic/tclProc.c (InitCompiledLocals, ObjInterpProcEx)
+	(TclObjInterpProcCore, ProcCompileProc): Code reordering to reduce
+	branching and improve branch prediction (assume that forward branches
+	are typically not taken).
+
+2007-04-03  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: INST_INVOKE optimisation. [Patch 1693802]
+
+2007-04-03  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclNamesp.c:	Revised ErrorCodeRead and ErrorInfoRead trace
+	routines so they guarantee the ::errorCode and ::errorInfo variable
+	always appear to exist. [Bug 1693252]
+
+2007-04-03  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.decls:	 Moved TclGetNamespaceFromObj() to the
+	* generic/tclInt.h:	 internal stubs table; regen.
+	* generic/tclIntDecls.h:
+	* generic/tclStubInit.c:
+
+2007-04-02  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclBasic.c:	  Added bytecode compilers for the variable
+	* generic/tclCompCmds.c:  linking commands: 'global', 'variable',
+	* generic/tclCompile.h:	  'upvar', 'namespace upvar' [Patch 1688593]
+	* generic/tclExecute.c:
+	* generic/tclInt.h:
+	* generic/tclVar.c:
+
+2007-04-02  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Replace arrays on the C stack and ckalloc
+	* generic/tclExecute.c: calls with TclStackAlloc calls to use memory
+	* generic/tclFCmd.c:	on Tcl's evaluation stack.
+	* generic/tclFileName.c:
+	* generic/tclIOCmd.c:
+	* generic/tclIndexObj.c:
+	* generic/tclInterp.c:
+	* generic/tclNamesp.c:
+	* generic/tclTrace.c:
+	* unix/tclUnixPipe.c:
+
+2007-04-01  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclCompile.c (TclCompileScript, TclPrintInstruction):
+	* generic/tclExecute.c (TclExecuteByteCode): Changed the definition of
+	INST_START_CMD so that it knows how many commands start at the current
+	location. This makes the interpreter command counter correct without
+	requiring a large number of instructions to be issued. (See my change
+	from 2007-01-19 for what triggered this.)
+
+2007-03-30  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompile.c:
+	* generic/tclCompExpr.c:
+	* generic/tclCompCmds.c:	Replace arrays on the C stack and
+	ckalloc calls with TclStackAlloc calls to use memory on Tcl's
+	evaluation stack.
+
+	* generic/tclCmdMZ.c:	Revised [string to* $s $first $last]
+	implementation to reduce number of allocs/copies.
+
+	* tests/string.test:  More [string reverse] tests.
+
+2007-03-30  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: optimise the lookup of elements of indexed
+	arrays.
+
+2007-03-29  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclProc.c (Tcl_ApplyObjCmd):
+	* tests/apply.test (9.3): Fixed Tcl_Obj leak on error return; an
+	unneeded ref to lambdaPtr was being set and not released on an error
+	return path.
+
+2007-03-28  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdMZ.c (STR_REVERSE):	Implement the actual [string
+	reverse] command in terms of the new TclStringObjReverse() routine.
+
+	* generic/tclInt.h (TclStringObjReverse):	New internal routine
+	* generic/tclStringObj.c (TclStringObjReverse): that implements the
+	[string reverse] operation, making use of knowledge/surgery of the
+	String intrep to minimize the number of allocs and copies needed to do
+	the job.
+
+2007-03-27  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdMZ.c (STR_MAP): Replace ckalloc calls with
+	TclStackAlloc calls.
+
+2007-03-24  Zoran Vasiljevic <vasiljevic@users.sourceforge.net>
+
+	* win/tclWinThrd.c: Thread exit handler marks the current thread as
+	un-initialized. This allows exit handlers that are registered later to
+	re-initialize this subsystem in case they need to use some sync
+	primitives (cond variables) from this file again.
+
+2007-03-23  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclBasic.c (DeleteInterpProc): pop the root frame pointer
+	before deleting the global namespace [Bug 1658572]
+
+2007-03-23  Kevin B. Kenny  <kennykb@acm.org>
+
+	* win/Makefile.in: Added code to keep a Cygwin path name from leaking
+	into LIBRARY_DIR when doing 'make test' or 'make runtest'.
+
+2007-03-22  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdAH.c (Tcl_ForeachObjCmd):	Replaced arrays on the
+	C stack and ckalloc calls with TclStackAlloc calls to use memory on
+	Tcl's evaluation stack.
+
+	* generic/tclExecute.c: Revised GrowEvaluationStack to take an
+	argument specifying the growth required by the caller, so that a
+	single reallocation / copy is the most that will ever be needed even
+	when required growth is large.
+
+2007-03-21  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c: More ckalloc -> ckrealloc conversions.
+	* generic/tclLiteral.c:
+	* generic/tclNamesp.c:
+	* generic/tclParse.c:
+	* generic/tclPreserve.c:
+	* generic/tclStringObj.c:
+	* generic/tclUtil.c:
+
+2007-03-20  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclEnv.c:	Some more ckalloc -> ckrealloc replacements.
+	* generic/tclLink.c:
+
+2007-03-20  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclDate.c: Rebuilt, despite Donal Fellows's comment when
+	committing it that no rebuild was required.
+	* generic/tclGetDate.y: According to Donal Fellows, "Introduce modern
+	formatting standards; no need for rebuild of tclDate.c."
+
+	* library/tzdata/America/Cambridge_Bay:
+	* library/tzdata/America/Havana:
+	* library/tzdata/America/Inuvik:
+	* library/tzdata/America/Iqaluit:
+	* library/tzdata/America/Pangnirtung:
+	* library/tzdata/America/Rankin_Inlet:
+	* library/tzdata/America/Resolute:
+	* library/tzdata/America/Yellowknife:
+	* library/tzdata/Asia/Choibalsan:
+	* library/tzdata/Asia/Dili:
+	* library/tzdata/Asia/Hovd:
+	* library/tzdata/Asia/Jakarta:
+	* library/tzdata/Asia/Jayapura:
+	* library/tzdata/Asia/Makassar:
+	* library/tzdata/Asia/Pontianak:
+	* library/tzdata/Asia/Ulaanbaatar:
+	* library/tzdata/Europe/Istanbul: Upgraded to Olson's tzdata2007d.
+
+	* generic/tclListObj.c (TclLsetList, TclLsetFlat):
+	* tests/lset.test: Changes to deal with shared internal representation
+	for lists passed to the [lset] command. Thanks to Don Porter for
+	fixing this issue. [Bug 1677512]
+
+2007-03-19  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompile.c: Revise the various expansion routines for
+	CompileEnv fields to use ckrealloc() where appropriate.
+
+	* generic/tclBinary.c (Tcl_SetByteArrayLength): Replaced ckalloc() /
+	memcpy() sequence with ckrealloc() call.
+
+	* generic/tclBasic.c (Tcl_CreateMathFunc):	Replaced some calls to
+	* generic/tclEvent.c (Tcl_CreateThread):	Tcl_Alloc() with calls
+	* generic/tclObj.c (UpdateStringOfBignum):	to ckalloc(), which
+	* unix/tclUnixTime.c (SetTZIfNecessary):	better supports memory
+	* win/tclAppInit.c (setargv):			debugging.
+
+2007-03-19  Donal K. Fellows  <donal.k.fellows@manchester.ac.uk>
+
+	* doc/regsub.n: Corrected example so that it doesn't recommend
+	potentially unsafe practice. Many thanks to Konstantin Kushnir
+	<chpock@gmail

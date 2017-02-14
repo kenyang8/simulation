@@ -1,0 +1,50 @@
+=============================================
+noede = 60		seed = 1 
+Deliver Ratio: 0.870627
+Avg EE delay: 0.232105
+Avg Hops: 5.09427
+=============================================
+noede = 60		seed = 2 
+Deliver Ratio: 0.943765
+Avg EE delay: 0.242675
+Avg Hops: 2.50546
+=============================================
+noede = 60		seed = 3 
+Deliver Ratio: 0.966887
+Avg EE delay: 0.0378791
+Avg Hops: 2.31687
+=============================================
+noede = 60		seed = 4 
+Deliver Ratio: 0.941416
+Avg EE delay: 0.110669
+Avg Hops: 3.15313
+=============================================
+noede = 60		seed = 5 
+Deliver Ratio: 0.914005
+Avg EE delay: 0.125574
+Avg Hops: 3.85684
+=============================================
+noede = 60		seed = 6 
+Deliver Ratio: 0.948445
+Avg EE delay: 0.124036
+Avg Hops: 2.98097
+=============================================
+noede = 60		seed = 7 
+Deliver Ratio: 0.883871
+Avg EE delay: 0.659664
+Avg Hops: 4.23858
+=============================================
+noede = 60		seed = 8 
+Deliver Ratio: 0.915789
+Avg EE delay: 0.113669
+Avg Hops: 3.05232
+=============================================
+noede = 60		seed = 9 
+Deliver Ratio: 0.913751
+Avg EE delay: 0.0906773
+Avg Hops: 4.04811
+=============================================
+noede = 60		seed = 10 
+Deliver Ratio: 0.933498
+Avg EE delay: 0.109982
+Avg Hops: 3.28458

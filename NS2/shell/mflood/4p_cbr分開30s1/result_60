@@ -1,0 +1,80 @@
+node = 60	seed = 1 
+=====================================================================
+send: 810   receive:  676	
+r/s Ratio:	0.8346
+delay:	0.102
+delay time:	68.822
+hop count:	3.093
+IFQ drop:	0
+node = 60	seed = 2 
+=====================================================================
+send: 796   receive:  618	
+r/s Ratio:	0.7764
+delay:	0.097
+delay time:	60.152
+hop count:	2.982
+IFQ drop:	0
+node = 60	seed = 3 
+=====================================================================
+send: 812   receive:  472	
+r/s Ratio:	0.5813
+delay:	0.116
+delay time:	54.826
+hop count:	3.708
+IFQ drop:	0
+node = 60	seed = 4 
+=====================================================================
+send: 806   receive:  537	
+r/s Ratio:	0.6663
+delay:	0.064
+delay time:	34.472
+hop count:	1.974
+IFQ drop:	0
+node = 60	seed = 5 
+=====================================================================
+send: 796   receive:  573	
+r/s Ratio:	0.7198
+delay:	0.068
+delay time:	39.099
+hop count:	2.291
+IFQ drop:	0
+node = 60	seed = 6 
+=====================================================================
+send: 799   receive:  655	
+r/s Ratio:	0.8198
+delay:	0.105
+delay time:	68.478
+hop count:	3.434
+IFQ drop:	0
+node = 60	seed = 7 
+=====================================================================
+send: 811   receive:  644	
+r/s Ratio:	0.7941
+delay:	0.128
+delay time:	82.459
+hop count:	4.115
+IFQ drop:	0
+node = 60	seed = 8 
+=====================================================================
+send: 819   receive:  616	
+r/s Ratio:	0.7521
+delay:	0.086
+delay time:	53.003
+hop count:	2.412
+IFQ drop:	0
+node = 60	seed = 9 
+=====================================================================
+send: 817   receive:  578	
+r/s Ratio:	0.7075
+delay:	0.087
+delay time:	50.370
+hop count:	3.019
+IFQ drop:	0
+node = 60	seed = 10 
+=====================================================================
+send: 804   receive:  649	
+r/s Ratio:	0.8072
+delay:	0.100
+delay time:	64.707
+hop count:	3.088
+IFQ drop:	0

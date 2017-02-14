@@ -1,0 +1,280 @@
+=============================================
+node = 300	seed = 1 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.228
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.107
+hop_all count:		3.402
+Total nodes forward:	139
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	32.258
+=============================================
+node = 300	seed = 2 
+=======================================
+send:  1	recv_des:  0	
+Delay_des:		0.000
+hop_des count:		0.000
+Total receive nodes:	300
+Delay for all nodes:	0.123
+hop_all count:		2.873
+Total nodes forward:	141
+Coverage:		0.997  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	37.012
+=============================================
+node = 300	seed = 3 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.279
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.114
+hop_all count:		3.179
+Total nodes forward:	144
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	34.191
+=============================================
+node = 300	seed = 4 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.094
+hop_des count:		4.000
+Total receive nodes:	296
+Delay for all nodes:	0.070
+hop_all count:		2.939
+Total nodes forward:	135
+Coverage:		0.983  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	20.742
+=============================================
+node = 300	seed = 5 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.324
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.122
+hop_all count:		3.259
+Total nodes forward:	175
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	36.581
+=============================================
+node = 300	seed = 6 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.173
+hop_des count:		5.000
+Total receive nodes:	300
+Delay for all nodes:	0.100
+hop_all count:		3.243
+Total nodes forward:	135
+Coverage:		0.997  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	29.872
+=============================================
+node = 300	seed = 7 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.219
+hop_des count:		5.000
+Total receive nodes:	301
+Delay for all nodes:	0.092
+hop_all count:		3.083
+Total nodes forward:	132
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	27.719
+=============================================
+node = 300	seed = 8 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.221
+hop_des count:		5.000
+Total receive nodes:	301
+Delay for all nodes:	0.095
+hop_all count:		3.375
+Total nodes forward:	131
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	28.525
+=============================================
+node = 300	seed = 9 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.334
+hop_des count:		4.000
+Total receive nodes:	301
+Delay for all nodes:	0.134
+hop_all count:		3.116
+Total nodes forward:	133
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	40.214
+=============================================
+node = 300	seed = 10 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.209
+hop_des count:		5.000
+Total receive nodes:	300
+Delay for all nodes:	0.119
+hop_all count:		3.400
+Total nodes forward:	104
+Coverage:		0.997  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	35.837
+=============================================
+node = 300	seed = 11 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.184
+hop_des count:		5.000
+Total receive nodes:	301
+Delay for all nodes:	0.132
+hop_all count:		3.219
+Total nodes forward:	158
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	39.685
+=============================================
+node = 300	seed = 12 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.211
+hop_des count:		5.000
+Total receive nodes:	300
+Delay for all nodes:	0.098
+hop_all count:		3.007
+Total nodes forward:	158
+Coverage:		0.997  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	29.272
+=============================================
+node = 300	seed = 13 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.430
+hop_des count:		8.000
+Total receive nodes:	301
+Delay for all nodes:	0.137
+hop_all count:		3.625
+Total nodes forward:	137
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	41.171
+=============================================
+node = 300	seed = 14 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.209
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.107
+hop_all count:		3.130
+Total nodes forward:	137
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	32.308
+=============================================
+node = 300	seed = 15 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.210
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.126
+hop_all count:		4.090
+Total nodes forward:	108
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	37.870
+=============================================
+node = 300	seed = 16 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.367
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.109
+hop_all count:		3.066
+Total nodes forward:	141
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	32.899
+=============================================
+node = 300	seed = 17 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.303
+hop_des count:		7.000
+Total receive nodes:	299
+Delay for all nodes:	0.130
+hop_all count:		3.224
+Total nodes forward:	138
+Coverage:		0.993  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	38.818
+=============================================
+node = 300	seed = 18 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.128
+hop_des count:		5.000
+Total receive nodes:	298
+Delay for all nodes:	0.092
+hop_all count:		3.285
+Total nodes forward:	129
+Coverage:		0.990  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	27.375
+=============================================
+node = 300	seed = 19 
+=======================================
+send:  1	recv_des:  0	
+Delay_des:		0.000
+hop_des count:		0.000
+Total receive nodes:	299
+Delay for all nodes:	0.103
+hop_all count:		3.441
+Total nodes forward:	136
+Coverage:		0.993  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	30.755
+=============================================
+node = 300	seed = 20 
+=======================================
+send:  1	recv_des:  1	
+Delay_des:		0.358
+hop_des count:		6.000
+Total receive nodes:	301
+Delay for all nodes:	0.175
+hop_all count:		3.037
+Total nodes forward:	135
+Coverage:		1.000  
+Total nodes: 		302   
+IFQ drop:		0
+Total delay time:	52.662

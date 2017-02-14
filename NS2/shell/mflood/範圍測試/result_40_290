@@ -1,0 +1,80 @@
+node = 40	seed = 1 
+=====================================================================
+send: 1203   receive:  969	
+r/s Ratio:	0.8055
+delay:	0.055
+delay time:	53.289
+hop count:	2.054
+IFQ drop:	0
+node = 40	seed = 2 
+=====================================================================
+send: 1188   receive:  1026	
+r/s Ratio:	0.8636
+delay:	0.059
+delay time:	60.727
+hop count:	2.122
+IFQ drop:	0
+node = 40	seed = 3 
+=====================================================================
+send: 1196   receive:  1042	
+r/s Ratio:	0.8712
+delay:	0.073
+delay time:	76.174
+hop count:	2.622
+IFQ drop:	0
+node = 40	seed = 4 
+=====================================================================
+send: 1196   receive:  990	
+r/s Ratio:	0.8278
+delay:	0.077
+delay time:	75.836
+hop count:	2.255
+IFQ drop:	0
+node = 40	seed = 5 
+=====================================================================
+send: 1211   receive:  1054	
+r/s Ratio:	0.8704
+delay:	0.062
+delay time:	65.364
+hop count:	1.991
+IFQ drop:	0
+node = 40	seed = 6 
+=====================================================================
+send: 1184   receive:  1077	
+r/s Ratio:	0.9096
+delay:	0.050
+delay time:	53.967
+hop count:	1.745
+IFQ drop:	0
+node = 40	seed = 7 
+=====================================================================
+send: 1199   receive:  1042	
+r/s Ratio:	0.8691
+delay:	0.040
+delay time:	41.585
+hop count:	1.105
+IFQ drop:	0
+node = 40	seed = 8 
+=====================================================================
+send: 1202   receive:  1036	
+r/s Ratio:	0.8619
+delay:	0.078
+delay time:	80.330
+hop count:	2.719
+IFQ drop:	0
+node = 40	seed = 9 
+=====================================================================
+send: 1197   receive:  1052	
+r/s Ratio:	0.8789
+delay:	0.061
+delay time:	63.964
+hop count:	2.330
+IFQ drop:	0
+node = 40	seed = 10 
+=====================================================================
+send: 1197   receive:  1038	
+r/s Ratio:	0.8672
+delay:	0.068
+delay time:	70.477
+hop count:	2.438
+IFQ drop:	0

@@ -1,0 +1,80 @@
+node = 50	seed = 1 
+=====================================================================
+send: 1211   receive:  772	
+r/s Ratio:	0.6375
+delay:	0.099
+delay time:	76.134
+hop count:	3.092
+IFQ drop:	0
+node = 50	seed = 2 
+=====================================================================
+send: 1199   receive:  744	
+r/s Ratio:	0.6205
+delay:	0.100
+delay time:	74.282
+hop count:	3.103
+IFQ drop:	0
+node = 50	seed = 3 
+=====================================================================
+send: 1204   receive:  891	
+r/s Ratio:	0.7400
+delay:	0.076
+delay time:	67.665
+hop count:	2.383
+IFQ drop:	0
+node = 50	seed = 4 
+=====================================================================
+send: 1212   receive:  917	
+r/s Ratio:	0.7566
+delay:	0.056
+delay time:	50.913
+hop count:	1.683
+IFQ drop:	0
+node = 50	seed = 5 
+=====================================================================
+send: 1185   receive:  797	
+r/s Ratio:	0.6726
+delay:	0.082
+delay time:	65.284
+hop count:	2.821
+IFQ drop:	0
+node = 50	seed = 6 
+=====================================================================
+send: 1198   receive:  728	
+r/s Ratio:	0.6077
+delay:	0.066
+delay time:	47.844
+hop count:	2.474
+IFQ drop:	0
+node = 50	seed = 7 
+=====================================================================
+send: 1207   receive:  697	
+r/s Ratio:	0.5775
+delay:	0.077
+delay time:	53.989
+hop count:	2.207
+IFQ drop:	0
+node = 50	seed = 8 
+=====================================================================
+send: 1191   receive:  642	
+r/s Ratio:	0.5390
+delay:	0.109
+delay time:	69.722
+hop count:	3.665
+IFQ drop:	0
+node = 50	seed = 9 
+=====================================================================
+send: 1182   receive:  825	
+r/s Ratio:	0.6980
+delay:	0.066
+delay time:	54.230
+hop count:	2.075
+IFQ drop:	0
+node = 50	seed = 10 
+=====================================================================
+send: 1190   receive:  919	
+r/s Ratio:	0.7723
+delay:	0.115
+delay time:	105.632
+hop count:	4.420
+IFQ drop:	0

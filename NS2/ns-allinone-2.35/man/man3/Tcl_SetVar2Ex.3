@@ -1,0 +1,423 @@
+ to Tcl's
+	* tests/event.test:	default [interp bgerror] handler so that when
+	it falls back to a hidden [bgerror] in a safe interp, it gets the
+	right error context data. [Bug 1790274]
+
+2007-09-07  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclProc.c (TclInitCompiledLocals): the refCount of resolved
+	variables was being managed without checking if they were Var or
+	VarInHash: itcl [Bug 1790184]
+
+2007-09-06  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclResult.c (Tcl_GetReturnOptions):	Take care that a
+	* tests/init.test:	non-TCL_ERROR code doesn't cause existing
+	-errorinfo, -errorcode, and -errorline entries to be omitted.
+	* generic/tclEvent.c:	With -errorInfo no longer lost, generate more
+	complete ::errorInfo when calling [bgerror] after a non-TCL_ERROR
+	background exception.
+
+2007-09-06  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclInterp.c (Tcl_Init):	Removed constraint on ability
+	to define a custom [tclInit] before calling Tcl_Init(). Until now the
+	custom command had to be a proc. Now it can be any command.
+
+	* generic/tclInt.decls: New internal routine TclBackgroundException()
+	* generic/tclEvent.c:	that for the first time permits non-TCL_ERROR
+	exceptions to trigger [interp bgerror] handling. Closes a gap in TIP
+	221. When falling back to [bgerror] (which is designed only to handle
+	TCL_ERROR), convert exceptions into errors complaining about the
+	exception.
+
+	* generic/tclInterp.c:	Convert Tcl_BackgroundError() callers to call
+	* generic/tclIO.c:	TclBackgroundException().
+	* generic/tclIOCmd.c:
+	* generic/tclTimer.c:
+
+	* generic/tclIntDecls.h:	make genstubs
+	* generic/tclStubInit.c:
+
+2007-09-06  Daniel Steffen  <das@users.sourceforge.net>
+
+	* macosx/Tcl.xcode/project.pbxproj: discontinue unmaintained support
+	* macosx/Tcl.xcode/default.pbxuser: for Xcode 1.5; replace by Xcode2
+	project for use on Tiger (with Tcl.xcodeproj to be used on Leopard).
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: updates for Xcode 2.5 and 3.0.
+	* macosx/Tcl.xcodeproj/default.pbxuser:
+	* macosx/Tcl.xcode/project.pbxproj:
+	* macosx/Tcl.xcode/default.pbxuser:
+	* macosx/Tcl-Common.xcconfig:
+
+	* macosx/README: document project changes.
+
+2007-09-05  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Removed support for the unmaintained
+	* generic/tclExecute.c: -DTCL_GENERIC_ONLY configuration. [Bug
+	* unix/Makefile.in:	1264623]
+
+2007-09-04  Don Porter	<dgp@users.sourceforge.net>
+
+	* unix/Makefile.in:	It's unreliable to count on the release
+	manager to remember to `make genstubs` before `make dist`. Let the
+	Makefile remember the dependency for us.
+
+	* unix/Makefile.in:	Corrections to `make dist` dependencies to be
+	sure that macosx/configure gets generated whenever it does not exist.
+
+2007-09-03  Kevin B, Kenny  <kennykb@acm.org>
+
+	* library/tzdata/Africa/Cairo:
+	* library/tzdata/America/Grand_Turk:
+	* library/tzdata/America/Port-au-Prince:
+	* library/tzdata/America/Indiana/Petersburg:
+	* library/tzdata/America/Indiana/Tell_City:
+	* library/tzdata/America/Indiana/Vincennes:
+	* library/tzdata/Antarctica/McMurdo:
+	* library/tzdata/Australia/Adelaide:
+	* library/tzdata/Australia/Broken_Hill:
+	* library/tzdata/Australia/Currie:
+	* library/tzdata/Australia/Hobart:
+	* library/tzdata/Australia/Lord_Howe:
+	* library/tzdata/Australia/Melbourne:
+	* library/tzdata/Australia/Sydney:
+	* library/tzdata/Pacific/Auckland:
+	* library/tzdata/Pacific/Chatham: Olson's tzdata2007g.
+
+	* generic/tclListObj.c (TclLindexFlat):
+	* tests/lindex.test (lindex-17.[01]):	Added code to detect the error
+	when a script does [lindex {} end foo]; an overaggressive optimisation
+	caused this call to return an empty object rather than an error.
+
+2007-09-03  Daniel Steffen  <das@users.sourceforge.net>
+
+	* generic/tclObj.c (TclInitObjSubsystem): restore registration of the
+	"wideInt" Tcl_ObjType for compatibility with 8.4 extensions that
+	access the tclWideIntType Tcl_ObjType; add setFromAnyProc for
+	tclWideIntType.
+
+2007-09-02  Donal K. Fellows  <dkf@users.sf.net>
+
+	* doc/lsearch.n: Added note that order of results with the -all option
+	is that of the input list. It always was, but this makes it crystal.
+
+2007-08-30  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompile.c: Added fflush() calls following all callers of
+	* generic/tclExecute.c: TclPrintByteCodeObj() so that tcl_traceCompile
+	output is less likely to get mangled when writes to stdout interleave
+	with other code.
+
+2007-08-28  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c:	Use a table lookup in ParseLexeme() to
+	determine lexemes with single-byte representations.
+
+	* generic/tclBasic.c:	Used unions to better clarify overloading of
+	* generic/tclCompExpr.c:	the fields of the OpCmdInfo and
+	* generic/tclCompile.h:		TclOpCmdClientData structs.
+
+2007-08-27  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c:	Call TclCompileSyntaxError() when
+	expression syntax errors are found when compiling expressions. With
+	this in place, convert TclCompileExpr to return void, since there's no
+	longer any need to report TCL_ERROR.
+	* generic/tclCompile.c: Update callers.
+	* generic/tclExecute.c:
+
+	* generic/tclCompCmds.c:	New routine TclCompileSyntaxError()
+	* generic/tclCompile.h: to directly compile bytecodes that report a
+	* generic/tclCompile.c: syntax error, rather than (ab)use a call to
+	TclCompileReturnCmd. Also, undo the most recent commit that papered
+	over some issues with that (ab)use. New routine produces a new opcode
+	INST_SYNTAX, which is a minor variation of INST_RETURN_IMM. Also a bit
+	of constification.
+
+	* generic/tclCompile.c: Move the deallocation of local LiteralTable
+	* generic/tclCompExpr.c:	entries into TclFreeCompileEnv().
+	* generic/tclExecute.c: Update callers.
+
+	* generic/tclCompExpr.c:	Force numeric and boolean literals in
+	expressions to register with their intreps intact, even if that means
+	overwriting existing intreps in already registered literals.
+
+2007-08-25  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclExecute.c (TclExecuteByteCode): Added code to handle
+	* tests/expr.test (expr-23.48-53)	     integer exponentiation
+	that results in 32- and 64-bit integer results, avoiding calls to wide
+	integer exponentiation routines in this common case. [Bug 1767293]
+
+	* library/clock.tcl (ParseClockScanFormat): Modified code to allow
+	* tests/clock.test (clock-60.*):	    case-insensitive matching
+	of time zone and month names. [Bug 1781282]
+
+2007-08-24  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c:	Register literals found in expressions
+	* tests/compExpr.test:	to restore literal sharing. Preserve numeric
+	intreps when literals are created for the first time. Correct memleak
+	in ExecConstantExprTree() and add test for the leak.
+
+2007-08-24  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCompile.c: replaced copy loop that tripped some compilers
+	with memmove. [Bug 1780870]
+
+2007-08-23  Don Porter	<dgp@users.sourceforge.net>
+
+	* library/init.tcl ([auto_load_index]): Delete stray "]" that created
+	an expr syntax error (masked by a [catch]).
+
+	* generic/tclCompCmds.c (TclCompileReturnCmd):	Added crash protection
+	to handle callers other than TclCompileScript() failing to meet the
+	initialization assumptions of the TIP 280 code in CompileWord().
+
+	* generic/tclCompExpr.c:	Suppress the attempt to convert to
+	numeric when pre-compiling a constant expresion indicates an error.
+
+2007-08-22  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (TEBC): disable the new shortcut to frequent
+	INSTs for debug builds. REVERTED (collision with alternative fix)
+
+2007-08-21  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclMain.c:	Corrected the logic of dropping the last
+	* tests/main.test:	newline from an interactively typed command.
+	[Bug 1775878]
+
+2007-08-21  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* tests/thread.test: thread-4.4: clear ::errorInfo in the thread as a
+	message is left here from init.tcl on windows due to no tcl_pkgPath.
+
+2007-08-20  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (INST_SUB): fix usage of the new macro for
+	overflow detection in sums, adapt to subtraction. Lengthy comment
+	added.
+
+2007-08-19  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclExecute.c (Overflowing, TclIncrObj, TclExecuteByteCode):
+	Encapsulate Miguel's last change in a more mnemonic macro.
+
+2007-08-19  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c: changed the check for overflow in sums,
+	reducing objsize, number of branches and cache misses (according to
+	cachegrind). Non-overflow for s=a+b:
+	previous
+	  ((a >= 0 || b >= 0 || s < 0) && (s >= 0 || b < 0 || a < 0))
+	now
+	  (((a^s) >= 0) || ((a^b) < 0))
+	This expresses: "a and s have the same sign or else a and b have
+	different sign".
+
+2007-08-19  Donal K. Fellows  <dkf@users.sf.net>
+
+	* doc/interp.n (RESOURCE LIMITS): Added text to better explain why
+	time limits are described using absolute times. [Bug 1752148]
+
+2007-08-16  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclVar.c: improved localVarNameType caching to leverage
+	the new availability of Tcl_Obj in variable names, avoiding string
+	comparisons to verify that the cached value is usable.
+
+	* generic/tclExecute.c: check the two most frequent instructions
+	before the switch. Reduces both runtime and obj size a tiny bit.
+
+2007-08-16  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c:	Added a "constant" field to the OpNode
+	struct (again "free" due to alignment requirements) to mark those
+	subexpressions that are completely known at compile time. Enhanced
+	CompileExprTree() and its callers to precompute these constant
+	subexpressions at compile time. This resolves the issue raised in [Bug
+	1564517].
+
+2007-08-15  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclIOUtil.c (TclGetOpenModeEx): Only set the O_APPEND flag
+	* tests/ioUtil.test (ioUtil-4.1):	  on a channel for the 'a'
+	mode and not for 'a+'. [Bug 1773127]
+
+2007-08-14  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (INST_INVOKE*): peephole opt, do not get the
+	interp's result if it will be pushed/popped.
+
+2007-08-14  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Use fully qualified variable names for
+	* tests/thread.test:	::errorInfo and ::errorCode so that string
+	* tests/trace.test:	reported to variable traces are fully
+	qualified in agreement with Tcl 8.4 operations.
+
+2007-08-14  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/tclLoadDyld.c: use dlfcn API on Mac OS X 10.4 and later; fix
+	issues with loading from memory on intel and 64bit; add debug messages
+
+	* tests/load.test: add test load-10.1 for loading from vfs.
+
+	* unix/dltest/pkga.c:		whitespace & comment cleanup, remove
+	* unix/dltest/pkgb.c:		unused pkgf.c.
+	* unix/dltest/pkgc.c:
+	* unix/dltest/pkge.c:
+	* unix/dltest/pkgf.c (removed):
+	* unix/dltest/pkgua.c:
+	* macosx/Tcl.xcodeproj/project.pbxproj:
+
+2007-08-13  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c: Provide DECACHE/CACHE protection to the
+	* tests/trace.test:	Tcl_LogCommandInfo() call. [Bug 1773040]
+
+2007-08-12  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCmdMZ.c (Tcl_SplitObjCmd): use TclNewStringObj macro
+	instead of calling the function.
+
+	* generic/tcl_Obj.c (TclAllocateFreeObjects): remove unneeded memset
+	to 0 of all allocated objects.
+
+2007-08-10  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h: remove redundant ops in TclNewStringObj macro.
+
+2007-08-10  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h: fix the TclSetVarNamespaceVar macro, was causing a
+	leak.
+
+2007-08-10  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCompExpr.c:	Revise CompileExprTree() to use the
+	OpNode mark field scheme of tree traversal. This eliminates the need
+	to use magic values in the left and right fields for that purpose.
+	Also stop abusing the left field within ParseExpr() to store the
+	number of arguments in a parsed function call. CompileExprTree() now
+	determines that for itself at compile time. Then reorder code to
+	eliminate duplication.
+
+2007-08-09  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclProc.c (TclCreateProc): better comments on the required
+	varflag values when loading precompiled procs.
+
+	* generic/tclExecute.c (INST_STORE_ARRAY):
+	* tests/trace.test (trace-2.6): whole array write traces on compiled
+	local variables were not firing. [Bug 1770591]
+
+2007-08-08  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* generic/tclProc.c (InitLocalCache): reference firstLocalPtr via
+	procPtr. codePtr->procPtr == NULL exposed by tbcload.
+
+2007-08-08  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c: Corrected failure to compile/link in the
+	-DNO_WIDE_TYPE configuration.
+
+	* generic/tclExecute.c: Corrected improper use of bignum arguments to
+	* tests/expr.test:	*SHIFT operations. [Bug 1770224]
+
+2007-08-07  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h: remove comments refering to VAR_SCALAR, as that
+	flag bit does not exist any longer.
+	* generic/tclProc.c (InitCompiledLocals): removed optimisation for
+	non-resolved case, as the function is never called in that case.
+	Renamed the function to InitResolvedLocals to calrify the point.
+
+	* generic/tclInt.decls:	  Exporting via stubs to help xotcl adapt to
+	* generic/tclInt.h:	  VarReform.
+	* generic/tclIntDecls.h:
+	* generic/tclStubInit.c:
+
+2007-08-07  Daniel Steffen  <das@users.sourceforge.net>
+
+	* generic/tclEnv.c:	improve environ handling on Mac OS X (adapted
+	* unix/tclUnixPort.h:	from Apple changes in Darwin tcl-64).
+
+	* unix/Makefile.in:	add support for compile flags specific to
+				object files linked directly into executables.
+
+	* unix/configure.in (Darwin): only use -seg1addr flag when prebinding;
+	use -mdynamic-no-pic flag for object files linked directly into exes;
+	support overriding TCL_PACKAGE_PATH/TCL_MODULE_PATH in environment.
+
+	* unix/configure: autoconf-2.59
+
+2007-08-06  Don Porter	<dgp@users.sourceforge.net>
+
+	* tests/parseExpr.test: Update source file name of expr parser code.
+
+	* generic/tclCompExpr.c:	Added a "mark" field to the OpNode
+	struct, which is used to guide tree traversal. This field costs
+	nothing since alignement requirements used the memory already.
+	Rewrote ConvertTreeToTokens() to use the new field, which permitted
+	consolidation of utility routines CopyTokens() and
+	GenerateTokensForLiteral().
+
+2007-08-06  Kevin B. Kenny  <kennykb@users.sf.net>
+
+	* generic/tclGetDate.y: Added a cast to the definition of YYFREE to
+				silence compiler warnings.
+	* generic/tclDate.c:	Regenerated
+	* win/tclWinTest.c:	Added a cast to GetSecurityDescriptorDacl call
+				to silence compiler warnings.
+
+2007-08-04  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.decls:	  Exporting via stubs to help itcl adapt to
+	* generic/tclInt.h:	  VarReform. Added localCache initialization
+	* generic/tclIntDecls.h:  to TclInitCompiledLocals (which only exists
+	* generic/tclProc.c:	  for itcl).
+	* generic/tclStubInit.c:
+	* generic/tclVar.c:
+
+2007-08-01  Donal K. Fellows  <donal.k.fellows@manchester.ac.uk>
+
+	* library/word.tcl: Rewrote for greater efficiency. [Bug 1764318]
+
+2007-08-01  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* generic/tclInt.h:	Added a TclOffset macro ala Tk_Offset to
+	* generic/tclVar.c:	abstract out 'offsetof' which may not be
+	* generic/tclExceute.c: defined (eg: msvc6).
+
+2007-08-01  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclVar.c (TclCleanupVar): fix [Bug 1765225], thx Larry
+	Virden.
+
+2007-07-31  Miguel Sofer  <msofer@users.sf.net>
+
+	* doc/Hash.3:
+	* generic/tclHash.c:
+	* generic/tclObj.c:
+	* generic/tclThreadStorage.c: (changes part of the patch below)
+	Stop Tcl_CreateHashVar from resetting hPtr->clientData to NULL after
+	calling the allocEntryProc for a custom table.
+
+	* generic/tcl.h:
+	* generic/tclBasic.c:
+	* generic/tclCmdIL.c:
+	* generic/tclCompCmds.c:
+	* generic/tclCompile.c:
+	* generic/tclCompile.h:
+	* generic/tclExecute.c:
+	* generic/tclHash.c:
+	* generic/tclInt.decls:
+	* generic/tclInt.h:
+	* generic/tclIntDecls.h:
+	* generic/tclLiteral.c:
+	* gener

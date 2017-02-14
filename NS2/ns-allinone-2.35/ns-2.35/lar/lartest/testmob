@@ -1,0 +1,31 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#	Steady-state Random Waypoint Model
+#	numNodes   =     50
+#	maxX       =   1000.00
+#	maxY       =   1000.00
+#	endTime    =    350.00
+#	speedMean  =    0.0000
+#	speedDelta =    0.0000
+#	pauseMean  =      2.00
+#	pauseDelta =      0.00
+#	output     =      N
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# output format is NS2
+#	Initial positions:
+
+$node_(0) set X_ 100.0
+$node_(0) set Y_ 200.0
+$node_(0) set Z_ 0.0
+$ns_ at 0.000000000000 "$node_(0) setdest 120.0 200.0 0.000010000000"
+
+$node_(1) set X_ 389.0
+$node_(1) set Y_ 200.0
+$node_(1) set Z_ 0.0
+$ns_ at 0.000000000000 "$node_(1) setdest 355.169223231342 200.023542973689 0.000010000000"
+
+$node_(2) set X_ 500.0
+$node_(2) set Y_ 200.0
+$node_(2) set Z_ 0.0
+$ns_ at 0.000000000000 "$node_(2) setdest 405.877427272442 200.150822410896 0.000010000000"
+

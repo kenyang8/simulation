@@ -1,0 +1,457 @@
+
+{
+    ChainEntry *cPtr;
+
+    for (cPtr=dict->entryChainHead ; cPtr!=NULL ; cPtr=cPtr->nextPtr) {
+	Tcl_Obj *valuePtr = Tcl_GetHashValue(&cPtr->entry);
+
+	TclDecrRefCount(valuePtr);
+    }
+    Tcl_DeleteHashTable(&dict->table);
+}
+
+static inline Tcl_HashEntry *
+CreateChainEntry(
+    Dict *dict,
+    Tcl_Obj *keyPtr,
+    int *newPtr)
+{
+    ChainEntry *cPtr = (ChainEntry *)
+	    Tcl_CreateHashEntry(&dict->table, (char *) keyPtr, newPtr);
+
+    /*
+     * If this is a new entry in the hash table, stitch it into the chain.
+     */
+
+    if (*newPtr) {
+	cPtr->nextPtr = NULL;
+	if (dict->entryChainHead == NULL) {
+	    cPtr->prevPtr = NULL;
+	    dict->entryChainHead = cPtr;
+	    dict->entryChainTail = cPtr;
+	} else {
+	    cPtr->prevPtr = dict->entryChainTail;
+	    dict->entryChainTail->nextPtr = cPtr;
+	    dict->entryChainTail = cPtr;
+	}
+    }
+
+    return &cPtr->entry;
+}
+
+static inline int
+DeleteChainEntry(
+    Dict *dict,
+    Tcl_Obj *keyPtr)
+{
+    ChainEntry *cPtr = (ChainEntry *)
+	    Tcl_FindHashEntry(&dict->table, (char *) keyPtr);
+
+    if (cPtr == NULL) {
+	return 0;
+    } else {
+	Tcl_Obj *valuePtr = Tcl_GetHashValue(&cPtr->entry);
+	TclDecrRefCount(valuePtr);
+    }
+
+    /*
+     * Unstitch from the chain.
+     */
+
+    if (cPtr->nextPtr) {
+	cPtr->nextPtr->prevPtr = cPtr->prevPtr;
+    } else {
+	dict->entryChainTail = cPtr->prevPtr;
+    }
+    if (cPtr->prevPtr) {
+	cPtr->prevPtr->nextPtr = cPtr->nextPtr;
+    } else {
+	dict->entryChainHead = cPtr->nextPtr;
+    }
+
+    Tcl_DeleteHashEntry(&cPtr->entry);
+    return 1;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DupDictInternalRep --
+ *
+ *	Initialize the internal representation of a dictionary Tcl_Obj to a
+ *	copy of the internal representation of an existing dictionary object.
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	"srcPtr"s dictionary internal rep pointer should not be NULL and we
+ *	assume it is not NULL. We set "copyPtr"s internal rep to a pointer to
+ *	a newly allocated dictionary rep that, in turn, points to "srcPtr"s
+ *	key and value objects. Those objects are not actually copied but are
+ *	shared between "srcPtr" and "copyPtr". The ref count of each key and
+ *	value object is incremented.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static void
+DupDictInternalRep(
+    Tcl_Obj *srcPtr,
+    Tcl_Obj *copyPtr)
+{
+    Dict *oldDict = srcPtr->internalRep.otherValuePtr;
+    Dict *newDict = (Dict *) ckalloc(sizeof(Dict));
+    ChainEntry *cPtr;
+
+    /*
+     * Copy values across from the old hash table.
+     */
+
+    InitChainTable(newDict);
+    for (cPtr=oldDict->entryChainHead ; cPtr!=NULL ; cPtr=cPtr->nextPtr) {
+	void *key = Tcl_GetHashKey(&oldDict->table, &cPtr->entry);
+	Tcl_Obj *valuePtr = Tcl_GetHashValue(&cPtr->entry);
+	int n;
+	Tcl_HashEntry *hPtr = CreateChainEntry(newDict, key, &n);
+
+	/*
+	 * Fill in the contents.
+	 */
+
+	Tcl_SetHashValue(hPtr, (ClientData) valuePtr);
+	Tcl_IncrRefCount(valuePtr);
+    }
+
+    /*
+     * Initialise other fields.
+     */
+
+    newDict->epoch = 0;
+    newDict->chain = NULL;
+    newDict->refcount = 1;
+
+    /*
+     * Store in the object.
+     */
+
+    copyPtr->internalRep.otherValuePtr = newDict;
+    copyPtr->typePtr = &tclDictType;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * FreeDictInternalRep --
+ *
+ *	Deallocate the storage associated with a dictionary object's internal
+ *	representation.
+ *
+ * Results:
+ *	None
+ *
+ * Side effects:
+ *	Frees the memory holding the dictionary's internal hash table unless
+ *	it is locked by an iteration going over it.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static void
+FreeDictInternalRep(
+    Tcl_Obj *dictPtr)
+{
+    Dict *dict = dictPtr->internalRep.otherValuePtr;
+
+    --dict->refcount;
+    if (dict->refcount <= 0) {
+	DeleteDict(dict);
+    }
+
+    dictPtr->internalRep.otherValuePtr = NULL;	/* Belt and braces! */
+    dictPtr->typePtr = NULL;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DeleteDict --
+ *
+ *	Delete the structure that is used to implement a dictionary's internal
+ *	representation. Called when either the dictionary object loses its
+ *	internal representation or when the last iteration over the dictionary
+ *	completes.
+ *
+ * Results:
+ *	None
+ *
+ * Side effects:
+ *	Decrements the reference count of all key and value objects in the
+ *	dictionary, which may free them.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static void
+DeleteDict(
+    Dict *dict)
+{
+    DeleteChainTable(dict);
+    ckfree((char *) dict);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * UpdateStringOfDict --
+ *
+ *	Update the string representation for a dictionary object. Note: This
+ *	function does not invalidate an existing old string rep so storage
+ *	will be lost if this has not already been done. This code is based on
+ *	UpdateStringOfList in tclListObj.c
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	The object's string is set to a valid string that results from the
+ *	dict-to-string conversion. This string will be empty if the dictionary
+ *	has no key/value pairs. The dictionary internal representation should
+ *	not be NULL and we assume it is not NULL.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static void
+UpdateStringOfDict(
+    Tcl_Obj *dictPtr)
+{
+#define LOCAL_SIZE 20
+    int localFlags[LOCAL_SIZE], *flagPtr = NULL;
+    Dict *dict = dictPtr->internalRep.otherValuePtr;
+    ChainEntry *cPtr;
+    Tcl_Obj *keyPtr, *valuePtr;
+    int i, length, bytesNeeded = 0;
+    char *elem, *dst;
+    const int maxFlags = UINT_MAX / sizeof(int);
+
+    /*
+     * This field is the most useful one in the whole hash structure, and it
+     * is not exposed by any API function...
+     */
+
+    int numElems = dict->table.numEntries * 2;
+
+    /* Handle empty list case first, simplifies what follows */
+    if (numElems == 0) {
+	dictPtr->bytes = tclEmptyStringRep;
+	dictPtr->length = 0;
+	return;
+    }
+
+    /*
+     * Pass 1: estimate space, gather flags.
+     */
+
+    if (numElems <= LOCAL_SIZE) {
+	flagPtr = localFlags;
+    } else if (numElems > maxFlags) {
+	Tcl_Panic("max size for a Tcl value (%d bytes) exceeded", INT_MAX);
+    } else {
+	flagPtr = (int *) ckalloc((unsigned) numElems*sizeof(int));
+    }
+    for (i=0,cPtr=dict->entryChainHead; i<numElems; i+=2,cPtr=cPtr->nextPtr) {
+	/*
+	 * Assume that cPtr is never NULL since we know the number of array
+	 * elements already.
+	 */
+
+	flagPtr[i] = ( i ? TCL_DONT_QUOTE_HASH : 0 );
+	keyPtr = (Tcl_Obj *) Tcl_GetHashKey(&dict->table, &cPtr->entry);
+	elem = TclGetStringFromObj(keyPtr, &length);
+	bytesNeeded += TclScanElement(elem, length, flagPtr+i);
+	if (bytesNeeded < 0) {
+	    Tcl_Panic("max size for a Tcl value (%d bytes) exceeded", INT_MAX);
+	}
+
+	flagPtr[i+1] = TCL_DONT_QUOTE_HASH;
+	valuePtr = Tcl_GetHashValue(&cPtr->entry);
+	elem = TclGetStringFromObj(valuePtr, &length);
+	bytesNeeded += TclScanElement(elem, length, flagPtr+i+1);
+	if (bytesNeeded < 0) {
+	    Tcl_Panic("max size for a Tcl value (%d bytes) exceeded", INT_MAX);
+	}
+    }
+    if (bytesNeeded > INT_MAX - numElems + 1) {
+	Tcl_Panic("max size for a Tcl value (%d bytes) exceeded", INT_MAX);
+    }
+    bytesNeeded += numElems;
+
+    /*
+     * Pass 2: copy into string rep buffer.
+     */
+
+    dictPtr->length = bytesNeeded - 1;
+    dictPtr->bytes = ckalloc((unsigned) bytesNeeded);
+    dst = dictPtr->bytes;
+    for (i=0,cPtr=dict->entryChainHead; i<numElems; i+=2,cPtr=cPtr->nextPtr) {
+	flagPtr[i] |= ( i ? TCL_DONT_QUOTE_HASH : 0 );
+	keyPtr = (Tcl_Obj *) Tcl_GetHashKey(&dict->table, &cPtr->entry);
+	elem = TclGetStringFromObj(keyPtr, &length);
+	dst += TclConvertElement(elem, length, dst, flagPtr[i]);
+	*dst++ = ' ';
+
+	flagPtr[i+1] |= TCL_DONT_QUOTE_HASH;
+	valuePtr = Tcl_GetHashValue(&cPtr->entry);
+	elem = TclGetStringFromObj(valuePtr, &length);
+	dst += TclConvertElement(elem, length, dst, flagPtr[i+1]);
+	*dst++ = ' ';
+    }
+    dictPtr->bytes[dictPtr->length] = '\0';
+
+    if (flagPtr != localFlags) {
+	ckfree((char *) flagPtr);
+    }
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * SetDictFromAny --
+ *
+ *	Convert a non-dictionary object into a dictionary object. This code is
+ *	very closely related to SetListFromAny in tclListObj.c but does not
+ *	actually guarantee that a dictionary object will have a string rep (as
+ *	conversions from lists are handled with a special case.)
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	If the string can be converted, it loses any old internal
+ *	representation that it had and gains a dictionary's internalRep.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+SetDictFromAny(
+    Tcl_Interp *interp,
+    Tcl_Obj *objPtr)
+{
+    Tcl_HashEntry *hPtr;
+    int isNew, result;
+    Dict *dict = (Dict *) ckalloc(sizeof(Dict));
+
+    InitChainTable(dict);
+
+    /*
+     * Since lists and dictionaries have very closely-related string
+     * representations (i.e. the same parsing code) we can safely special-case
+     * the conversion from lists to dictionaries.
+     */
+
+    if (objPtr->typePtr == &tclListType) {
+	int objc, i;
+	Tcl_Obj **objv;
+
+	/* Cannot fail, we already know the Tcl_ObjType is "list". */
+	TclListObjGetElements(NULL, objPtr, &objc, &objv);
+	if (objc & 1) {
+	    goto missingValue;
+	}
+
+	for (i=0 ; i<objc ; i+=2) {
+	
+	    /* Store key and value in the hash table we're building. */
+	    hPtr = CreateChainEntry(dict, objv[i], &isNew);
+	    if (!isNew) {
+		Tcl_Obj *discardedValue = Tcl_GetHashValue(hPtr);
+
+		/*
+		 * Not really a well-formed dictionary as there are duplicate
+		 * keys, so better get the string rep here so that we can
+		 * convert back.
+		 */
+
+		(void) Tcl_GetString(objPtr);
+
+		TclDecrRefCount(discardedValue);
+	    }
+	    Tcl_SetHashValue(hPtr, objv[i+1]);
+	    Tcl_IncrRefCount(objv[i+1]); /* Since hash now holds ref to it */
+	}
+    } else {
+	int length;
+	const char *nextElem = TclGetStringFromObj(objPtr, &length);
+	const char *limit = (nextElem + length);
+
+	while (nextElem < limit) {
+	    Tcl_Obj *keyPtr, *valuePtr;
+	    const char *elemStart;
+	    int elemSize, literal;
+
+	    result = TclFindElement(interp, nextElem, (limit - nextElem),
+		    &elemStart, &nextElem, &elemSize, &literal);
+	    if (result != TCL_OK) {
+		goto errorExit;
+	    }
+	    if (elemStart == limit) {
+		break;
+	    }
+	    if (nextElem == limit) {
+		goto missingValue;
+	    }
+
+	    if (literal) {
+		TclNewStringObj(keyPtr, elemStart, elemSize);
+	    } else {
+		/* Avoid double copy */
+		TclNewObj(keyPtr);
+		keyPtr->bytes = ckalloc((unsigned) elemSize + 1);
+		keyPtr->length = TclCopyAndCollapse(elemSize, elemStart,
+			keyPtr->bytes);
+	    }
+
+	    result = TclFindElement(interp, nextElem, (limit - nextElem),
+		    &elemStart, &nextElem, &elemSize, &literal);
+	    if (result != TCL_OK) {
+		TclDecrRefCount(keyPtr);
+		goto errorExit;
+	    }
+
+	    if (literal) {
+		TclNewStringObj(valuePtr, elemStart, elemSize);
+	    } else {
+		/* Avoid double copy */
+		TclNewObj(valuePtr);
+		valuePtr->bytes = ckalloc((unsigned) elemSize + 1);
+		valuePtr->length = TclCopyAndCollapse(elemSize, elemStart,
+			valuePtr->bytes);
+	    }
+
+	    /* Store key and value in the hash table we're building. */
+	    hPtr = CreateChainEntry(dict, keyPtr, &isNew);
+	    if (!isNew) {
+		Tcl_Obj *discardedValue = Tcl_GetHashValue(hPtr);
+
+		TclDecrRefCount(keyPtr);
+		TclDecrRefCount(discardedValue);
+	    }
+	    Tcl_SetHashValue(hPtr, valuePtr);
+	    Tcl_IncrRefCount(valuePtr); /* since hash now holds ref to it */
+	}
+    }
+
+    /*
+     * Free the old internalRep before setting the new one. We do this as late
+     * as possible to allow the conversion code, in particular
+     * Tcl_GetStringFromObj, to use that old internalRep.
+     */
+
+    TclFreeIntRep(objPtr);
+    dict->epoch = 0;
+    dict->chain = NULL;
+    dict->refcount = 1;
+    objPtr->internalRep.otherValuePtr = dict;
+    objP

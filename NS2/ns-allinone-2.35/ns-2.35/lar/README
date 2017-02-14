@@ -1,0 +1,45 @@
+/******************************************************************************
+*   Copyright (C) 2004  Toilers Research Group -- Colorado School of Mines
+*
+*   Please see COPYRIGHT.TXT and LICENSE.TXT for copyright and license
+*   details in LAR-DREAM/.
+
+*******************************************************************************/
+
+Toilers code for LAR in NS-2.
+
+The paper related to this code is:
+
+T. Camp, J. Boleng, B. Williams, L. Wilcox, and W. Navidi, Performance
+Comparision of Two Location Based Routing Protocols for Ad Hoc
+Networks, Proceedings of the IEEE INFOCOM, pp. 1678-1687, 2002.
+
+===========================
+
+We are happy to share our code with you. We only ask that any
+published research from using our code include a reference to our
+INFOCOM 2002 paper.
+
+If you have any questions on the code, send email to Tracy Camp at
+tcamp@mines.edu.
+
+The research group's URL is http://toilers.mines.edu.
+
+===========================
+
+Please be advised that this code has only been integrated into and
+tested with ns2.1b7a.
+
+See the README file in LAR-DREAM/ for further details.
+
+See the README file in LAR-DREAM/mines-dream-ns/ for example
+steps on installation. 
+
+===========================
+
+Code written by Jeff Boleng (Ph.D. 2002 from the Colorado School of
+Mines).  
+
+===========================
+
+

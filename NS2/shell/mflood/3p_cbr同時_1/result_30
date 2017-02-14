@@ -1,0 +1,80 @@
+node = 30	seed = 1 
+=====================================================================
+send: 605   receive:  302	
+r/s Ratio:	0.4992
+delay:	0.051
+delay time:	15.472
+hop count:	2.328
+IFQ drop:	0
+node = 30	seed = 2 
+=====================================================================
+send: 604   receive:  227	
+r/s Ratio:	0.3758
+delay:	0.047
+delay time:	10.571
+hop count:	2.128
+IFQ drop:	0
+node = 30	seed = 3 
+=====================================================================
+send: 612   receive:  273	
+r/s Ratio:	0.4461
+delay:	0.040
+delay time:	10.786
+hop count:	1.733
+IFQ drop:	0
+node = 30	seed = 4 
+=====================================================================
+send: 597   receive:  171	
+r/s Ratio:	0.2864
+delay:	0.069
+delay time:	11.839
+hop count:	2.673
+IFQ drop:	0
+node = 30	seed = 5 
+=====================================================================
+send: 614   receive:  128	
+r/s Ratio:	0.2085
+delay:	0.051
+delay time:	6.539
+hop count:	2.188
+IFQ drop:	0
+node = 30	seed = 6 
+=====================================================================
+send: 597   receive:  184	
+r/s Ratio:	0.3082
+delay:	0.071
+delay time:	13.075
+hop count:	3.576
+IFQ drop:	0
+node = 30	seed = 7 
+=====================================================================
+send: 586   receive:  309	
+r/s Ratio:	0.5273
+delay:	0.032
+delay time:	9.930
+hop count:	1.456
+IFQ drop:	0
+node = 30	seed = 8 
+=====================================================================
+send: 593   receive:  255	
+r/s Ratio:	0.4300
+delay:	0.026
+delay time:	6.511
+hop count:	1.176
+IFQ drop:	0
+node = 30	seed = 9 
+=====================================================================
+send: 594   receive:  312	
+r/s Ratio:	0.5253
+delay:	0.035
+delay time:	10.815
+hop count:	1.532
+IFQ drop:	0
+node = 30	seed = 10 
+=====================================================================
+send: 594   receive:  272	
+r/s Ratio:	0.4579
+delay:	0.035
+delay time:	9.519
+hop count:	1.537
+IFQ drop:	0

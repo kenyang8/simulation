@@ -1,0 +1,80 @@
+speed = 10	seed = 1 
+=====================================================================
+send: 2389   receive:  1424	
+r/s Ratio:	0.5961
+delay:	0.414
+delay time:	589.642
+hop count:	3.416
+IFQ drop:	0
+speed = 10	seed = 2 
+=====================================================================
+send: 2412   receive:  1382	
+r/s Ratio:	0.5730
+delay:	1.548
+delay time:	2138.900
+hop count:	3.465
+IFQ drop:	290
+speed = 10	seed = 3 
+=====================================================================
+send: 2406   receive:  1569	
+r/s Ratio:	0.6521
+delay:	0.427
+delay time:	669.757
+hop count:	2.109
+IFQ drop:	0
+speed = 10	seed = 4 
+=====================================================================
+send: 2395   receive:  1507	
+r/s Ratio:	0.6292
+delay:	0.257
+delay time:	388.030
+hop count:	1.849
+IFQ drop:	0
+speed = 10	seed = 5 
+=====================================================================
+send: 2392   receive:  1227	
+r/s Ratio:	0.5130
+delay:	0.210
+delay time:	257.870
+hop count:	3.270
+IFQ drop:	0
+speed = 10	seed = 6 
+=====================================================================
+send: 2406   receive:  1272	
+r/s Ratio:	0.5287
+delay:	0.130
+delay time:	165.383
+hop count:	2.937
+IFQ drop:	0
+speed = 10	seed = 7 
+=====================================================================
+send: 2396   receive:  1156	
+r/s Ratio:	0.4825
+delay:	0.458
+delay time:	529.048
+hop count:	2.272
+IFQ drop:	0
+speed = 10	seed = 8 
+=====================================================================
+send: 2424   receive:  1068	
+r/s Ratio:	0.4406
+delay:	0.496
+delay time:	529.788
+hop count:	3.759
+IFQ drop:	0
+speed = 10	seed = 9 
+=====================================================================
+send: 2424   receive:  1273	
+r/s Ratio:	0.5252
+delay:	0.282
+delay time:	358.542
+hop count:	1.955
+IFQ drop:	0
+speed = 10	seed = 10 
+=====================================================================
+send: 2421   receive:  1525	
+r/s Ratio:	0.6299
+delay:	0.293
+delay time:	446.629
+hop count:	4.622
+IFQ drop:	0

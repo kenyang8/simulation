@@ -1,0 +1,30 @@
+node = 30	
+Deliver Ratio: 0.407861
+Original r/s Ratio: 0.40837
+Avg EE delay: 0.0477
+hop count: 1.997
+IFQ drop: 0
+node = 40	
+Deliver Ratio: 0.570774
+Original r/s Ratio: 0.57132
+Avg EE delay: 0.0592
+hop count: 2.2391
+IFQ drop: 0
+node = 50	
+Deliver Ratio: 0.642272
+Original r/s Ratio: 0.64223
+Avg EE delay: 0.088
+hop count: 2.8128
+IFQ drop: 0
+node = 60	
+Deliver Ratio: 0.696063
+Original r/s Ratio: 0.69634
+Avg EE delay: 0.112
+hop count: 2.9805
+IFQ drop: 0
+node = 70	
+Deliver Ratio: 0.791965
+Original r/s Ratio: 0.7919
+Avg EE delay: 0.1211
+hop count: 3.026
+IFQ drop: 0

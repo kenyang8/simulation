@@ -1,0 +1,1194 @@
+
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictUnsetCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr, *resultPtr;
+    int result, allocatedDict = 0;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "varName key ?key ...?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	allocatedDict = 1;
+	dictPtr = Tcl_NewDictObj();
+    } else if (Tcl_IsShared(dictPtr)) {
+	allocatedDict = 1;
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+    }
+
+    result = Tcl_DictObjRemoveKeyList(interp, dictPtr, objc-2, objv+2);
+    if (result != TCL_OK) {
+	if (allocatedDict) {
+	    TclDecrRefCount(dictPtr);
+	}
+	return TCL_ERROR;
+    }
+
+    resultPtr = Tcl_ObjSetVar2(interp, objv[1], NULL, dictPtr,
+	    TCL_LEAVE_ERR_MSG);
+    if (resultPtr == NULL) {
+	return TCL_ERROR;
+    }
+    Tcl_SetObjResult(interp, resultPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictFilterCmd --
+ *
+ *	This function implements the "dict filter" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictFilterCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Interp *iPtr = (Interp *) interp;
+    static const char *filters[] = {
+	"key", "script", "value", NULL
+    };
+    enum FilterTypes {
+	FILTER_KEYS, FILTER_SCRIPT, FILTER_VALUES
+    };
+    Tcl_Obj *scriptObj, *keyVarObj, *valueVarObj;
+    Tcl_Obj **varv, *keyObj, *valueObj, *resultObj, *boolObj;
+    Tcl_DictSearch search;
+    int index, varc, done, result, satisfied;
+    char *pattern;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary filterType ...");
+	return TCL_ERROR;
+    }
+    if (Tcl_GetIndexFromObj(interp, objv[2], filters, "filterType",
+	     0, &index) != TCL_OK) {
+	return TCL_ERROR;
+    }
+
+    switch ((enum FilterTypes) index) {
+    case FILTER_KEYS:
+	if (objc != 4) {
+	    Tcl_WrongNumArgs(interp, 1, objv, "dictionary key globPattern");
+	    return TCL_ERROR;
+	}
+
+	/*
+	 * Create a dictionary whose keys all match a certain pattern.
+	 */
+
+	if (Tcl_DictObjFirst(interp, objv[1], &search,
+		&keyObj, &valueObj, &done) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	pattern = TclGetString(objv[3]);
+	resultObj = Tcl_NewDictObj();
+	if (TclMatchIsTrivial(pattern)) {
+	    /*
+	     * Must release the search lock here to prevent a memory leak
+	     * since we are not exhausing the search. [Bug 1705778, leak K05]
+	     */
+
+	    Tcl_DictObjDone(&search);
+	    Tcl_DictObjGet(interp, objv[1], objv[3], &valueObj);
+	    if (valueObj != NULL) {
+		Tcl_DictObjPut(interp, resultObj, objv[3], valueObj);
+	    }
+	} else {
+	    while (!done) {
+		if (Tcl_StringMatch(TclGetString(keyObj), pattern)) {
+		    Tcl_DictObjPut(interp, resultObj, keyObj, valueObj);
+		}
+		Tcl_DictObjNext(&search, &keyObj, &valueObj, &done);
+	    }
+	}
+	Tcl_SetObjResult(interp, resultObj);
+	return TCL_OK;
+
+    case FILTER_VALUES:
+	if (objc != 4) {
+	    Tcl_WrongNumArgs(interp, 1, objv, "dictionary value globPattern");
+	    return TCL_ERROR;
+	}
+
+	/*
+	 * Create a dictionary whose values all match a certain pattern.
+	 */
+
+	if (Tcl_DictObjFirst(interp, objv[1], &search,
+		&keyObj, &valueObj, &done) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	pattern = TclGetString(objv[3]);
+	resultObj = Tcl_NewDictObj();
+	while (!done) {
+	    if (Tcl_StringMatch(TclGetString(valueObj), pattern)) {
+		Tcl_DictObjPut(interp, resultObj, keyObj, valueObj);
+	    }
+	    Tcl_DictObjNext(&search, &keyObj, &valueObj, &done);
+	}
+	Tcl_SetObjResult(interp, resultObj);
+	return TCL_OK;
+
+    case FILTER_SCRIPT:
+	if (objc != 5) {
+	    Tcl_WrongNumArgs(interp, 1, objv,
+		    "dictionary script {keyVar valueVar} filterScript");
+	    return TCL_ERROR;
+	}
+
+	/*
+	 * Create a dictionary whose key,value pairs all satisfy a script
+	 * (i.e. get a true boolean result from its evaluation). Massive
+	 * copying from the "dict for" implementation has occurred!
+	 */
+
+	if (TclListObjGetElements(interp, objv[3], &varc, &varv) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	if (varc != 2) {
+	    Tcl_SetResult(interp, "must have exactly two variable names",
+		    TCL_STATIC);
+	    return TCL_ERROR;
+	}
+	keyVarObj = varv[0];
+	valueVarObj = varv[1];
+	scriptObj = objv[4];
+
+	/*
+	 * Make sure that these objects (which we need throughout the body of
+	 * the loop) don't vanish. Note that the dictionary internal rep is
+	 * locked internally so that updates, shimmering, etc are not a
+	 * problem.
+	 */
+
+	Tcl_IncrRefCount(keyVarObj);
+	Tcl_IncrRefCount(valueVarObj);
+	Tcl_IncrRefCount(scriptObj);
+
+	result = Tcl_DictObjFirst(interp, objv[1],
+		&search, &keyObj, &valueObj, &done);
+	if (result != TCL_OK) {
+	    TclDecrRefCount(keyVarObj);
+	    TclDecrRefCount(valueVarObj);
+	    TclDecrRefCount(scriptObj);
+	    return TCL_ERROR;
+	}
+
+	resultObj = Tcl_NewDictObj();
+
+	while (!done) {
+	    /*
+	     * Stop the value from getting hit in any way by any traces on the
+	     * key variable.
+	     */
+
+	    Tcl_IncrRefCount(keyObj);
+	    Tcl_IncrRefCount(valueObj);
+	    if (Tcl_ObjSetVar2(interp, keyVarObj, NULL, keyObj,
+		    TCL_LEAVE_ERR_MSG) == NULL) {
+		Tcl_ResetResult(interp);
+		Tcl_AppendResult(interp, "couldn't set key variable: \"",
+			TclGetString(keyVarObj), "\"", NULL);
+		result = TCL_ERROR;
+		goto abnormalResult;
+	    }
+	    if (Tcl_ObjSetVar2(interp, valueVarObj, NULL, valueObj,
+		    TCL_LEAVE_ERR_MSG) == NULL) {
+		Tcl_ResetResult(interp);
+		Tcl_AppendResult(interp, "couldn't set value variable: \"",
+			TclGetString(valueVarObj), "\"", NULL);
+		goto abnormalResult;
+	    }
+
+	    /*
+	     * TIP #280. Make invoking context available to loop body.
+	     */
+
+	    result = TclEvalObjEx(interp, scriptObj, 0, iPtr->cmdFramePtr, 4);
+	    switch (result) {
+	    case TCL_OK:
+		boolObj = Tcl_GetObjResult(interp);
+		Tcl_IncrRefCount(boolObj);
+		Tcl_ResetResult(interp);
+		if (Tcl_GetBooleanFromObj(interp, boolObj,
+			&satisfied) != TCL_OK) {
+		    TclDecrRefCount(boolObj);
+		    result = TCL_ERROR;
+		    goto abnormalResult;
+		}
+		TclDecrRefCount(boolObj);
+		if (satisfied) {
+		    Tcl_DictObjPut(interp, resultObj, keyObj, valueObj);
+		}
+		break;
+	    case TCL_BREAK:
+		/*
+		 * Force loop termination by calling Tcl_DictObjDone; this
+		 * makes the next Tcl_DictObjNext say there is nothing more to
+		 * do.
+		 */
+
+		Tcl_ResetResult(interp);
+		Tcl_DictObjDone(&search);
+	    case TCL_CONTINUE:
+		result = TCL_OK;
+		break;
+	    case TCL_ERROR:
+		Tcl_AppendObjToErrorInfo(interp, Tcl_ObjPrintf(
+			"\n    (\"dict filter\" script line %d)",
+			interp->errorLine));
+	    default:
+		goto abnormalResult;
+	    }
+
+	    TclDecrRefCount(keyObj);
+	    TclDecrRefCount(valueObj);
+
+	    Tcl_DictObjNext(&search, &keyObj, &valueObj, &done);
+	}
+
+	/*
+	 * Stop holding a reference to these objects.
+	 */
+
+	TclDecrRefCount(keyVarObj);
+	TclDecrRefCount(valueVarObj);
+	TclDecrRefCount(scriptObj);
+	Tcl_DictObjDone(&search);
+
+	if (result == TCL_OK) {
+	    Tcl_SetObjResult(interp, resultObj);
+	} else {
+	    TclDecrRefCount(resultObj);
+	}
+	return result;
+
+    abnormalResult:
+	Tcl_DictObjDone(&search);
+	TclDecrRefCount(keyObj);
+	TclDecrRefCount(valueObj);
+	TclDecrRefCount(keyVarObj);
+	TclDecrRefCount(valueVarObj);
+	TclDecrRefCount(scriptObj);
+	TclDecrRefCount(resultObj);
+	return result;
+    }
+    Tcl_Panic("unexpected fallthrough");
+    /* Control never reaches this point. */
+    return TCL_ERROR;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictUpdateCmd --
+ *
+ *	This function implements the "dict update" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#212 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictUpdateCmd(
+    ClientData clientData,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Interp *iPtr = (Interp *) interp;
+    Tcl_Obj *dictPtr, *objPtr;
+    int i, result, dummy;
+    Tcl_InterpState state;
+
+    if (objc < 5 || !(objc & 1)) {
+	Tcl_WrongNumArgs(interp, 1, objv,
+		"varName key varName ?key varName ...? script");
+	return TCL_ERROR;
+    }
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, TCL_LEAVE_ERR_MSG);
+    if (dictPtr == NULL) {
+	return TCL_ERROR;
+    }
+    if (Tcl_DictObjSize(interp, dictPtr, &dummy) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    Tcl_IncrRefCount(dictPtr);
+    for (i=2 ; i+2<objc ; i+=2) {
+	if (Tcl_DictObjGet(interp, dictPtr, objv[i], &objPtr) != TCL_OK) {
+	    TclDecrRefCount(dictPtr);
+	    return TCL_ERROR;
+	}
+	if (objPtr == NULL) {
+	    /* ??? */
+	    Tcl_UnsetVar(interp, Tcl_GetString(objv[i+1]), 0);
+	} else if (Tcl_ObjSetVar2(interp, objv[i+1], NULL, objPtr,
+		TCL_LEAVE_ERR_MSG) == NULL) {
+	    TclDecrRefCount(dictPtr);
+	    return TCL_ERROR;
+	}
+    }
+    TclDecrRefCount(dictPtr);
+
+    /*
+     * Execute the body.
+     */
+
+    result = TclEvalObjEx(interp, objv[objc-1], 0, iPtr->cmdFramePtr, objc-1);
+    if (result == TCL_ERROR) {
+	Tcl_AddErrorInfo(interp, "\n    (body of \"dict update\")");
+    }
+
+    /*
+     * If the dictionary variable doesn't exist, drop everything silently.
+     */
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	return result;
+    }
+
+    /*
+     * Double-check that it is still a dictionary.
+     */
+
+    state = Tcl_SaveInterpState(interp, result);
+    if (Tcl_DictObjSize(interp, dictPtr, &dummy) != TCL_OK) {
+	Tcl_DiscardInterpState(state);
+	return TCL_ERROR;
+    }
+
+    if (Tcl_IsShared(dictPtr)) {
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+    }
+
+    /*
+     * Write back the values from the variables, treating failure to read as
+     * an instruction to remove the key.
+     */
+
+    for (i=2 ; i+2<objc ; i+=2) {
+	objPtr = Tcl_ObjGetVar2(interp, objv[i+1], NULL, 0);
+	if (objPtr == NULL) {
+	    Tcl_DictObjRemove(interp, dictPtr, objv[i]);
+	} else if (objPtr == dictPtr) {
+	    /*
+	     * Someone is messing us around, trying to build a recursive
+	     * structure. [Bug 1786481]
+	     */
+
+	    Tcl_DictObjPut(interp, dictPtr, objv[i],
+		    Tcl_DuplicateObj(objPtr));
+	} else {
+	    /* Shouldn't fail */
+	    Tcl_DictObjPut(interp, dictPtr, objv[i], objPtr);
+	}
+    }
+
+    /*
+     * Write the dictionary back to its variable.
+     */
+
+    if (Tcl_ObjSetVar2(interp, objv[1], NULL, dictPtr,
+	    TCL_LEAVE_ERR_MSG) == NULL) {
+	Tcl_DiscardInterpState(state);
+	return TCL_ERROR;
+    }
+
+    return Tcl_RestoreInterpState(interp, state);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictWithCmd --
+ *
+ *	This function implements the "dict with" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#212 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictWithCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Interp *iPtr = (Interp *) interp;
+    Tcl_Obj *dictPtr, *keysPtr, *keyPtr, *valPtr, **keyv, *leafPtr;
+    Tcl_DictSearch s;
+    Tcl_InterpState state;
+    int done, result, keyc, i, allocdict = 0;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictVar ?key ...? script");
+	return TCL_ERROR;
+    }
+
+    /*
+     * Get the dictionary to open out.
+     */
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, TCL_LEAVE_ERR_MSG);
+    if (dictPtr == NULL) {
+	return TCL_ERROR;
+    }
+    if (objc > 3) {
+	dictPtr = TclTraceDictPath(interp, dictPtr, objc-3, objv+2,
+		DICT_PATH_READ);
+	if (dictPtr == NULL) {
+	    return TCL_ERROR;
+	}
+    }
+
+    /*
+     * Go over the list of keys and write each corresponding value to a
+     * variable in the current context with the same name. Also keep a copy of
+     * the keys so we can write back properly later on even if the dictionary
+     * has been structurally modified.
+     */
+
+    if (Tcl_DictObjFirst(interp, dictPtr, &s, &keyPtr, &valPtr,
+	    &done) != TCL_OK) {
+	return TCL_ERROR;
+    }
+
+    TclNewObj(keysPtr);
+    Tcl_IncrRefCount(keysPtr);
+
+    for (; !done ; Tcl_DictObjNext(&s, &keyPtr, &valPtr, &done)) {
+	Tcl_ListObjAppendElement(NULL, keysPtr, keyPtr);
+	if (Tcl_ObjSetVar2(interp, keyPtr, NULL, valPtr,
+		TCL_LEAVE_ERR_MSG) == NULL) {
+	    TclDecrRefCount(keysPtr);
+	    Tcl_DictObjDone(&s);
+	    return TCL_ERROR;
+	}
+    }
+
+    /*
+     * Execute the body, while making the invoking context available to the
+     * loop body (TIP#280).
+     */
+
+    result = TclEvalObjEx(interp, objv[objc-1], 0, iPtr->cmdFramePtr, objc-1);
+    if (result == TCL_ERROR) {
+	Tcl_AddErrorInfo(interp, "\n    (body of \"dict with\")");
+    }
+
+    /*
+     * If the dictionary variable doesn't exist, drop everything silently.
+     */
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	TclDecrRefCount(keysPtr);
+	return result;
+    }
+
+    /*
+     * Double-check that it is still a dictionary.
+     */
+
+    state = Tcl_SaveInterpState(interp, result);
+    if (Tcl_DictObjSize(interp, dictPtr, &i) != TCL_OK) {
+	TclDecrRefCount(keysPtr);
+	Tcl_DiscardInterpState(state);
+	return TCL_ERROR;
+    }
+
+    if (Tcl_IsShared(dictPtr)) {
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+	allocdict = 1;
+    }
+
+    if (objc > 3) {
+	/*
+	 * Want to get to the dictionary which we will update; need to do
+	 * prepare-for-update de-sharing along the path *but* avoid generating
+	 * an error on a non-existant path (we'll treat that the same as a
+	 * non-existant variable. Luckily, the de-sharing operation isn't
+	 * deeply damaging if we don't go on to update; it's just less than
+	 * perfectly efficient (but no memory should be leaked).
+	 */
+
+	leafPtr = TclTraceDictPath(interp, dictPtr, objc-3, objv+2,
+		DICT_PATH_EXISTS | DICT_PATH_UPDATE);
+	if (leafPtr == NULL) {
+	    TclDecrRefCount(keysPtr);
+	    if (allocdict) {
+		TclDecrRefCount(dictPtr);
+	    }
+	    Tcl_DiscardInterpState(state);
+	    return TCL_ERROR;
+	}
+	if (leafPtr == DICT_PATH_NON_EXISTENT) {
+	    TclDecrRefCount(keysPtr);
+	    if (allocdict) {
+		TclDecrRefCount(dictPtr);
+	    }
+	    return Tcl_RestoreInterpState(interp, state);
+	}
+    } else {
+	leafPtr = dictPtr;
+    }
+
+    /*
+     * Now process our updates on the leaf dictionary.
+     */
+
+    TclListObjGetElements(NULL, keysPtr, &keyc, &keyv);
+    for (i=0 ; i<keyc ; i++) {
+	valPtr = Tcl_ObjGetVar2(interp, keyv[i], NULL, 0);
+	if (valPtr == NULL) {
+	    Tcl_DictObjRemove(NULL, leafPtr, keyv[i]);
+	} else if (leafPtr == valPtr) {
+	    /*
+	     * Someone is messing us around, trying to build a recursive
+	     * structure. [Bug 1786481]
+	     */
+
+	    Tcl_DictObjPut(NULL, leafPtr, keyv[i], Tcl_DuplicateObj(valPtr));
+	} else {
+	    Tcl_DictObjPut(NULL, leafPtr, keyv[i], valPtr);
+	}
+    }
+    TclDecrRefCount(keysPtr);
+
+    /*
+     * Ensure that none of the dictionaries in the chain still have a string
+     * rep.
+     */
+
+    if (objc > 3) {
+	InvalidateDictChain(leafPtr);
+    }
+
+    /*
+     * Write back the outermost dictionary to the variable.
+     */
+
+    if (Tcl_ObjSetVar2(interp, objv[1], NULL, dictPtr,
+	    TCL_LEAVE_ERR_MSG) == NULL) {
+	Tcl_DiscardInterpState(state);
+	return TCL_ERROR;
+    }
+    return Tcl_RestoreInterpState(interp, state);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * TclInitDictCmd --
+ *
+ *	This function is create the "dict" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A Tcl command handle.
+ *
+ * Side effects:
+ *	May advance compilation epoch.
+ *
+ *----------------------------------------------------------------------
+ */
+
+Tcl_Command
+TclInitDictCmd(
+    Tcl_Interp *interp)
+{
+    return TclMakeEnsemble(interp, "dict", implementationMap);
+}
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */
+                                                    # tclTomMath.decls --
+#
+#	This file contains the declarations for the functions in
+#	'libtommath' that are contained within the Tcl library.
+#	This file is used to generate the 'tclTomMathDecls.h' and
+#	'tclTomMathStub.c' files.
+#
+# If you edit this file, advance the revision number (and the epoch
+# if the new stubs are not backward compatible) in tclTomMathDecls.h
+#
+# Copyright (c) 2005 by Kevin B. Kenny.  All rights reserved.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+library tcl
+
+# Define the unsupported generic interfaces.
+
+interface tclTomMath
+# hooks {tclTomMathInt}
+
+# Declare each of the functions in the Tcl tommath interface
+
+declare 0 generic {
+    int TclBN_epoch(void)
+}
+declare 1 generic {
+    int TclBN_revision(void)
+}
+
+declare 2 generic {
+    int TclBN_mp_add(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 3 generic {
+    int TclBN_mp_add_d(mp_int *a, mp_digit b, mp_int *c)
+}
+declare 4 generic {
+    int TclBN_mp_and(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 5 generic {
+    void TclBN_mp_clamp(mp_int *a)
+}
+declare 6 generic {
+    void TclBN_mp_clear(mp_int *a)
+}
+declare 7 generic {
+    void TclBN_mp_clear_multi(mp_int *a, ...)
+}
+declare 8 generic {
+    int TclBN_mp_cmp(mp_int *a, mp_int *b)
+}
+declare 9 generic {
+    int TclBN_mp_cmp_d(mp_int *a, mp_digit b)
+}
+declare 10 generic {
+    int TclBN_mp_cmp_mag(mp_int *a, mp_int *b)
+}
+declare 11 generic {
+    int TclBN_mp_copy(mp_int *a, mp_int *b)
+}
+declare 12 generic {
+    int TclBN_mp_count_bits(mp_int *a)
+}
+declare 13 generic {
+    int TclBN_mp_div(mp_int *a, mp_int *b, mp_int *q, mp_int *r)
+}
+declare 14 generic {
+    int TclBN_mp_div_d(mp_int *a, mp_digit b, mp_int *q, mp_digit *r)
+}
+declare 15 generic {
+    int TclBN_mp_div_2(mp_int *a, mp_int *q)
+}
+declare 16 generic {
+    int TclBN_mp_div_2d(mp_int *a, int b, mp_int *q, mp_int *r)
+}
+declare 17 generic {
+    int TclBN_mp_div_3(mp_int *a, mp_int *q, mp_digit *r)
+}
+declare 18 generic {
+    void TclBN_mp_exch(mp_int *a, mp_int *b)
+}
+declare 19 generic {
+    int TclBN_mp_expt_d(mp_int *a, mp_digit b, mp_int *c)
+}
+declare 20 generic {
+    int TclBN_mp_grow(mp_int *a, int size)
+}
+declare 21 generic {
+    int TclBN_mp_init(mp_int *a)
+}
+declare 22 generic {
+    int TclBN_mp_init_copy(mp_int *a, mp_int *b)
+}
+declare 23 generic {
+    int TclBN_mp_init_multi(mp_int *a, ...)
+}
+declare 24 generic {
+    int TclBN_mp_init_set(mp_int *a, mp_digit b)
+}
+declare 25 generic {
+    int TclBN_mp_init_size(mp_int *a, int size)
+}
+declare 26 generic {
+    int TclBN_mp_lshd(mp_int *a, int shift)
+}
+declare 27 generic {
+    int TclBN_mp_mod(mp_int *a, mp_int *b, mp_int *r)
+}
+declare 28 generic {
+    int TclBN_mp_mod_2d(mp_int *a, int b, mp_int *r)
+}
+declare 29 generic {
+    int TclBN_mp_mul(mp_int *a, mp_int *b, mp_int *p)
+}
+declare 30 generic {
+    int TclBN_mp_mul_d(mp_int *a, mp_digit b, mp_int *p)
+}
+declare 31 generic {
+    int TclBN_mp_mul_2(mp_int *a, mp_int *p)
+}
+declare 32 generic {
+    int TclBN_mp_mul_2d(mp_int *a, int d, mp_int *p)
+}
+declare 33 generic {
+    int TclBN_mp_neg(mp_int *a, mp_int *b)
+}
+declare 34 generic {
+    int TclBN_mp_or(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 35 generic {
+    int TclBN_mp_radix_size(mp_int *a, int radix, int *size)
+}
+declare 36 generic {
+    int TclBN_mp_read_radix(mp_int *a, const char *str, int radix)
+}
+declare 37 generic {
+    void TclBN_mp_rshd(mp_int *a, int shift)
+}
+declare 38 generic {
+    int TclBN_mp_shrink(mp_int *a)
+}
+declare 39 generic {
+    void TclBN_mp_set(mp_int *a, mp_digit b)
+}
+declare 40 generic {
+    int TclBN_mp_sqr(mp_int *a, mp_int *b)
+}
+declare 41 generic {
+    int TclBN_mp_sqrt(mp_int *a, mp_int *b)
+}
+declare 42 generic {
+    int TclBN_mp_sub(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 43 generic {
+    int TclBN_mp_sub_d(mp_int *a, mp_digit b, mp_int *c)
+}
+declare 44 generic {
+    int TclBN_mp_to_unsigned_bin(mp_int *a, unsigned char *b)
+}
+declare 45 generic {
+    int TclBN_mp_to_unsigned_bin_n(mp_int *a, unsigned char *b,
+	    unsigned long *outlen)
+}
+declare 46 generic {
+    int TclBN_mp_toradix_n(mp_int *a, char *str, int radix, int maxlen)
+}
+declare 47 generic {
+    int TclBN_mp_unsigned_bin_size(mp_int *a)
+}
+declare 48 generic {
+    int TclBN_mp_xor(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 49 generic {
+    void TclBN_mp_zero(mp_int *a)
+}
+
+# internal routines to libtommath - should not be called but must be
+# exported to accommodate the "tommath" extension
+
+declare 50 generic {
+    void TclBN_reverse(unsigned char *s, int len)
+}
+declare 51 generic {
+    int TclBN_fast_s_mp_mul_digs(mp_int *a, mp_int *b, mp_int *c, int digs)
+}
+declare 52 generic {
+    int TclBN_fast_s_mp_sqr(mp_int *a, mp_int *b)
+}
+declare 53 generic {
+    int TclBN_mp_karatsuba_mul(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 54 generic {
+    int TclBN_mp_karatsuba_sqr(mp_int *a, mp_int *b)
+}
+declare 55 generic {
+    int TclBN_mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 56 generic {
+    int TclBN_mp_toom_sqr(mp_int *a, mp_int *b)
+}
+declare 57 generic {
+    int TclBN_s_mp_add(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 58 generic {
+    int TclBN_s_mp_mul_digs(mp_int *a, mp_int *b, mp_int *c, int digs)
+}
+declare 59 generic {
+    int TclBN_s_mp_sqr(mp_int *a, mp_int *b)
+}
+declare 60 generic {
+    int TclBN_s_mp_sub(mp_int *a, mp_int *b, mp_int *c)
+}
+declare 61 {
+    int TclBN_mp_init_set_int(mp_int* a, unsigned long i)
+}
+declare 62 {
+    int TclBN_mp_set_int(mp_int* a, unsigned long i)
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          # created by tools/tclZIC.tcl - do not edit
+
+set TZData(:Asia/Amman) {
+    {-9223372036854775808 8624 0 LMT}
+    {-1230776624 7200 0 EET}
+    {108165600 10800 1 EEST}
+    {118270800 7200 0 EET}
+    {136591200 10800 1 EEST}
+    {149806800 7200 0 EET}
+    {168127200 10800 1 EEST}
+    {181342800 7200 0 EET}
+    {199749600 10800 1 EEST}
+    {215643600 7200 0 EET}
+    {231285600 10800 1 EEST}
+    {244501200 7200 0 EET}
+    {262735200 10800 1 EEST}
+    {275950800 7200 0 EET}
+    {481154400 10800 1 EEST}
+    {496962000 7200 0 EET}
+    {512949600 10800 1 EEST}
+    {528670800 7200 0 EET}
+    {544399200 10800 1 EEST}
+    {560120400 7200 0 EET}
+    {575848800 10800 1 EEST}
+    {592174800 7200 0 EET}
+    {610581600 10800 1 EEST}
+    {623624400 7200 0 EET}
+    {641167200 10800 1 EEST}
+    {655074000 7200 0 EET}
+    {671839200 10800 1 EEST}
+    {685918800 7200 0 EET}
+    {702856800 10800 1 EEST}
+    {717973200 7200 0 EET}
+    {733701600 10800 1 EEST}
+    {749422800 7200 0 EET}
+    {765151200 10800 1 EEST}
+    {779662800 7200 0 EET}
+    {797205600 10800 1 EEST}
+    {811116000 7200 0 EET}
+    {828655200 10800 1 EEST}
+    {843170400 7200 0 EET}
+    {860104800 10800 1 EEST}
+    {874620000 7200 0 EET}
+    {891554400 10800 1 EEST}
+    {906069600 7200 0 EET}
+    {930780000 10800 1 EEST}
+    {938124000 7200 0 EET}
+    {954367200 10800 1 EEST}
+    {970178400 7200 0 EET}
+    {985816800 10800 1 EEST}
+    {1001628000 7200 0 EET}
+    {1017352800 10800 1 EEST}
+    {1033077600 7200 0 EET}
+    {1048802400 10800 1 EEST}
+    {1066946400 7200 0 EET}
+    {1080252000 10800 1 EEST}
+    {1097791200 7200 0 EET}
+    {1112306400 10800 1 EEST}
+    {1128031200 7200 0 EET}
+    {1143756000 10800 1 EEST}
+    {1161900000 7200 0 EET}
+    {1175205600 10800 1 EEST}
+    {1193349600 7200 0 EET}
+    {1206655200 10800 1 EEST}
+    {1225404000 7200 0 EET}
+    {1238104800 10800 1 EEST}
+    {1256853600 7200 0 EET}
+    {1269554400 10800 1 EEST}
+    {1288303200 7200 0 EET}
+    {1301608800 10800 1 EEST}
+    {1319752800 7200 0 EET}
+    {1333058400 10800 1 EEST}
+    {1351202400 7200 0 EET}
+    {1364508000 10800 1 EEST}
+    {1382652000 7200 0 EET}
+    {1395957600 10800 1 EEST}
+    {1414706400 7200 0 EET}
+    {1427407200 10800 1 EEST}
+    {1446156000 7200 0 EET}
+    {1459461600 10800 1 EEST}
+    {1477605600 7200 0 EET}
+    {1490911200 10800 1 EEST}
+    {1509055200 7200 0 EET}
+    {1522360800 10800 1 EEST}
+    {1540504800 7200 0 EET}
+    {1553810400 10800 1 EEST}
+    {1571954400 7200 0 EET}
+    {1585260000 10800 1 EEST}
+    {1604008800 7200 0 EET}
+    {1616709600 10800 1 EEST}
+    {1635458400 7200 0 EET}
+    {1648764000 10800 1 EEST}
+    {1666908000 7200 0 EET}
+    {1680213600 10800 1 EEST}
+    {1698357600 7200 0 EET}
+    {1711663200 10800 1 EEST}
+    {1729807200 7200 0 EET}
+    {1743112800 10800 1 EEST}
+    {1761861600 7200 0 EET}
+    {1774562400 10800 1 EEST}
+    {1793311200 7200 0 EET}
+    {1806012000 10800 1 EEST}
+    {1824760800 7200 0 EET}
+    {1838066400 10800 1 EEST}
+    {1856210400 7200 0 EET}
+    {1869516000 10800 1 EEST}
+    {1887660000 7200 0 EET}
+    {1900965600 10800 1 EEST}
+    {1919109600 7200 0 EET}
+    {1932415200 10800 1 EEST}
+    {1951164000 7200 0 EET}
+    {1963864800 10800 1 EEST}
+    {1982613600 7200 0 EET}
+    {1995919200 10800 1 EEST}
+    {2014063200 7200 0 EET}
+    {2027368800 10800 1 EEST}
+    {2045512800 7200 0 EET}
+    {2058818400 10800 1 EEST}
+    {2076962400 7200 0 EET}
+    {2090268000 10800 1 EEST}
+    {2109016800 7200 0 EET}
+    {2121717600 10800 1 EEST}
+    {2140466400 7200 0 EET}
+    {2153167200 10800 1 EEST}
+    {2171916000 7200 0 EET}
+    {2185221600 10800 1 EEST}
+    {2203365600 7200 0 EET}
+    {2216671200 10800 1 EEST}
+    {2234815200 7200 0 EET}
+    {2248120800 10800 1 EEST}
+    {2266264800 7200 0 EET}
+    {2279570400 10800 1 EEST}
+    {2298319200 7200 0 EET}
+    {2311020000 10800 1 EEST}
+    {2329768800 7200 0 EET}
+    {2343074400 10800 1 EEST}
+    {2361218400 7200 0 EET}
+    {2374524000 10800 1 EEST}
+    {2392668000 7200 0 EET}
+    {2405973600 10800 1 EEST}
+    {2424117600 7200 0 EET}
+    {2437423200 10800 1 EEST}
+    {2455567200 7200 0 EET}
+    {2468872800 10800 1 EEST}
+    {2487621600 7200 0 EET}
+    {2500322400 10800 1 EEST}
+    {2519071200 7200 0 EET}
+    {2532376800 10800 1 EEST}
+    {2550520800 7200 0 EET}
+    {2563826400 10800 1 EEST}
+    {2581970400 7200 0 EET}
+    {2595276000 10800 1 EEST}
+    {2613420000 7200 0 EET}
+    {2626725600 10800 1 EEST}
+    {2645474400 7200 0 EET}
+    {2658175200 10800 1 EEST}
+    {2676924000 7200 0 EET}
+    {2689624800 10800 1 EEST}
+    {2708373600 7200 0 EET}
+    {2721679200 10800 1 EEST}
+    {2739823200 7200 0 EET}
+    {2753128800 10800 1 EEST}
+    {2771272800 7200 0 EET}
+    {2784578400 10800 1 EEST}
+    {2802722400 7200 0 EET}
+    {2816028000 10800 1 EEST}
+    {2834776800 7200 0 EET}
+    {2847477600 10800 1 EEST}
+    {2866226400 7200 0 EET}
+    {2879532000 10800 1 EEST}
+    {2897676000 7200 0 EET}
+    {2910981600 10800 1 EEST}
+    {2929125600 7200 0 EET}
+    {2942431200 10800 1 EEST}
+    {2960575200 7200 0 EET}
+    {2973880800 10800 1 EEST}
+    {2992629600 7200 0 EET}
+    {3005330400 10800 1 EEST}
+    {3024079200 7200 0 EET}
+    {3036780000 10800 1 EEST}
+    {3055528800 7200 0 EET}
+    {3068834400 10800 1 EEST}
+    {3086978400 7200 0 EET}
+    {3100284000 10800 1 EEST}
+    {3118428000 7200 0 EET}
+    {3131733600 10800 1 EEST}
+    {3149877600 7200 0 EET}
+    {3163183200 10800 1 EEST}
+    {3181932000 7200 0 EET}
+    {3194632800 10800 1 EEST}
+    {3213381600 7200 0 EET}
+    {3226687200 10800 1 EEST}
+    {3244831200 7200 0 EET}
+    {3258136800 10800 1 EEST}
+    {3276280800 7200 0 EET}
+    {3289586400 10800 1 EEST}
+    {3307730400 7200 0 EET}
+    {3321036000 10800 1 EEST}
+    {3339180000 7200 0 EET}
+    {3352485600 10800 1 EEST}
+    {3371234400 7200 0 EET}
+    {3383935200 10800 1 EEST}
+    {3402684000 7200 0 EET}
+    {3415989600 10800 1 EEST}
+    {3434133600 7200 0 EET}
+    {3447439200 10800 1 EEST}
+    {3465583200 7200 0 EET}
+    {3478888800 10800 1 EEST}
+    {3497032800 7200 0 EET}
+    {3510338400 10800 1 EEST}
+    {3529087200 7200 0 EET}
+    {3541788000 10800 1 EEST}
+    {3560536800 7200 0 EET}
+    {3573237600 10800 1 EEST}
+    {3591986400 7200 0 EET}
+    {3605292000 10800 1 EEST}
+    {3623436000 7200 0 EET}
+    {3636741600 10800 1 EEST}
+    {3654885600 7200 0 EET}
+    {3668191200 10800 1 EEST}
+    {3686335200 7200 0 EET}
+    {3699640800 10800 1 EEST}
+    {3718389600 7200 0 EET}
+    {3731090400 10800 1 EEST}
+    {3749839200 7200 0 EET}
+    {3763144800 10800 1 EEST}
+    {3781288800 7200 0 EET}
+    {3794594400 10800 1 EEST}
+    {3812738400 7200 0 EET}
+    {3826044000 10800 1 EEST}
+    {3844188000 7200 0 EET}
+    {3857493600 10800 1 EEST}
+    {3876242400 7200 0 EET}
+    {3888943200 10800 1 EEST}
+    {3907692000 7200 0 EET}
+    {3920392800 10800 1 EEST}
+    {3939141600 7200 0 EET}
+    {3952447200 10800 1 EEST}
+    {3970591200 7200 0 EET}
+    {3983896800 10800 1 EEST}
+    {4002040800 7200 0 EET}
+    {4015346400 10800 1 EEST}
+    {4033490400 7200 0 EET}
+    {4046796000 10800 1 EEST}
+    {4065544800 7200 0 EET}
+    {4078245600 10800 1 EEST}
+    {4096994400 7200 0 EET}
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       # created by tools/tclZIC.tcl - do not edit
+
+set TZData(:Atlantic/Bermuda) {
+    {-9223372036854775808 -15544 0 LMT}
+    {-1262281256 -14400 0 AST}
+    {136360800 -10800 0 ADT}
+    {152082000 -14400 0 AST}
+    {167810400 -10800 1 ADT}
+    {183531600 -14400 0 AST}
+    {189316800 -14400 0 AST}
+    {199260000 -10800 1 ADT}
+    {215586000 -14400 0 AST}
+    {230709600 -10800 1 ADT}
+    {247035600 -14400 0 AST}
+    {262764000 -10800 1 ADT}
+    {278485200 -14400 0 AST}
+    {294213600 -10800 1 ADT}
+    {309934800 -14400 0 AST}
+    {325663200 -10800 1 ADT}
+    {341384400 -14400 0 AST}
+    {357112800 -10800 1 ADT}
+    {372834000 -14400 0 AST}
+    {388562400 -10800 1 ADT}
+    {404888400 -14400 0 AST}
+    {420012000 -10800 1 ADT}
+    {436338000 -14400 0 AST}
+    {452066400 -10800 1 ADT}
+    {467787600 -14400 0 AST}
+    {483516000 -10800 1 ADT}
+    {499237200 -14400 0 AST}
+    {514965600 -10800 1 ADT}
+    {530686800 -14400 0 AST}
+    {544600800 -10800 1 ADT}
+    {562136400 -14400 0 AST}
+    {576050400 -10800 1 ADT}
+    {594190800 -14400 0 AST}
+    {607500000 -10800 1 ADT}
+    {625640400 -14400 0 AST}
+    {638949600 -10800 1 ADT}
+    {657090000 -14400 0 AST}
+    {671004000 -10800 1 ADT}
+    {688539600 -14400 0 AST}
+    {702453600 -10800 1 ADT}
+    {719989200 -14400 0 AST}
+    {733903200 -10800 1 ADT}
+    {752043600 -14400 0 AST}
+    {765352800 -10800 1 ADT}
+    {783493200 -14400 0 AST}
+    {796802400 -10800 1 ADT}
+    {814942800 -14400 0 AST}
+    {828856800 -10800 1 ADT}
+    {846392400 -14400 0 AST}
+    {860306400 -10800 1 ADT}
+    {877842000 -14400 0 AST}
+    {891756000 -10800 1 ADT}
+    {909291600 -14400 0 AST}
+    {923205600 -10800 1 ADT}
+    {941346000 -14400 0 AST}
+    {954655200 -10800 1 ADT}
+    {972795600 -14400 0 AST}
+    {986104800 -10800 1 ADT}
+    {1004245200 -14400 0 AST}
+    {1018159200 -10800 1 ADT}
+    {1035694800 -14400 0 AST}
+    {1049608800 -10800 1 ADT}
+    {1067144400 -14400 0 AST}
+    {1081058400 -10800 1 ADT}
+    {1099198800 -14400 0 AST}
+    {1112508000 -10800 1 ADT}
+    {1130648400 -14400 

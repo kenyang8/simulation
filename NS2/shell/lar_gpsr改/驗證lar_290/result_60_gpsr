@@ -1,0 +1,40 @@
+node = 60	seed = 1 
+=====================================================================
+send: 1199   receive:  1063	
+r/s Ratio:	0.8866
+delay:	0.202
+delay time:	214.816
+hop count:	4.110
+IFQ drop:	324560
+node = 60	seed = 2 
+=====================================================================
+send: 1203   receive:  1113	
+r/s Ratio:	0.9252
+delay:	0.121
+delay time:	134.713
+hop count:	1.073
+IFQ drop:	0
+node = 60	seed = 3 
+=====================================================================
+send: 1208   receive:  109	
+r/s Ratio:	0.0902
+delay:	0.092
+delay time:	10.063
+hop count:	1.431
+IFQ drop:	1567907
+node = 60	seed = 4 
+=====================================================================
+send: 1196   receive:  66	
+r/s Ratio:	0.0552
+delay:	0.652
+delay time:	43.028
+hop count:	4.167
+IFQ drop:	1497199
+node = 60	seed = 5 
+=====================================================================
+send: 1199   receive:  871	
+r/s Ratio:	0.7264
+delay:	0.206
+delay time:	179.195
+hop count:	2.540
+IFQ drop:	702809

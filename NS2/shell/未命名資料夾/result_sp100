@@ -1,0 +1,50 @@
+=============================================
+speed = 100	seed = 1 
+Deliver Ratio: 0.207722
+Avg EE delay: 4.50494
+Avg Hops: 2.07623
+=============================================
+speed = 100	seed = 2 
+Deliver Ratio: 0.196419
+Avg EE delay: 3.90077
+Avg Hops: 2.17734
+=============================================
+speed = 100	seed = 3 
+Deliver Ratio: 0.17565
+Avg EE delay: 4.11975
+Avg Hops: 2.06257
+=============================================
+speed = 100	seed = 4 
+Deliver Ratio: 0.159528
+Avg EE delay: 5.09605
+Avg Hops: 2.0827
+=============================================
+speed = 100	seed = 5 
+Deliver Ratio: 0.20125
+Avg EE delay: 4.61811
+Avg Hops: 2.21992
+=============================================
+speed = 100	seed = 6 
+Deliver Ratio: 0.157108
+Avg EE delay: 3.71288
+Avg Hops: 2.10739
+=============================================
+speed = 100	seed = 7 
+Deliver Ratio: 0.200586
+Avg EE delay: 3.1758
+Avg Hops: 2.04088
+=============================================
+speed = 100	seed = 8 
+Deliver Ratio: 0.185635
+Avg EE delay: 4.01488
+Avg Hops: 2.13457
+=============================================
+speed = 100	seed = 9 
+Deliver Ratio: 0.167915
+Avg EE delay: 4.58868
+Avg Hops: 2.31834
+=============================================
+speed = 100	seed = 10 
+Deliver Ratio: 0.172653
+Avg EE delay: 4.28128
+Avg Hops: 2.22001

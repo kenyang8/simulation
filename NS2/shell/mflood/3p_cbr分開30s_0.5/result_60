@@ -1,0 +1,80 @@
+node = 60	seed = 1 
+=====================================================================
+send: 1206   receive:  968	
+r/s Ratio:	0.8027
+delay:	0.119
+delay time:	114.834
+hop count:	3.127
+IFQ drop:	0
+node = 60	seed = 2 
+=====================================================================
+send: 1193   receive:  927	
+r/s Ratio:	0.7770
+delay:	0.100
+delay time:	92.316
+hop count:	3.058
+IFQ drop:	0
+node = 60	seed = 3 
+=====================================================================
+send: 1196   receive:  740	
+r/s Ratio:	0.6187
+delay:	0.132
+delay time:	97.965
+hop count:	3.423
+IFQ drop:	0
+node = 60	seed = 4 
+=====================================================================
+send: 1196   receive:  726	
+r/s Ratio:	0.6070
+delay:	0.071
+delay time:	51.195
+hop count:	1.675
+IFQ drop:	0
+node = 60	seed = 5 
+=====================================================================
+send: 1186   receive:  702	
+r/s Ratio:	0.5919
+delay:	0.068
+delay time:	48.029
+hop count:	2.453
+IFQ drop:	0
+node = 60	seed = 6 
+=====================================================================
+send: 1195   receive:  935	
+r/s Ratio:	0.7824
+delay:	0.091
+delay time:	84.713
+hop count:	2.634
+IFQ drop:	0
+node = 60	seed = 7 
+=====================================================================
+send: 1201   receive:  918	
+r/s Ratio:	0.7644
+delay:	0.142
+delay time:	130.490
+hop count:	3.892
+IFQ drop:	0
+node = 60	seed = 8 
+=====================================================================
+send: 1209   receive:  960	
+r/s Ratio:	0.7940
+delay:	0.108
+delay time:	103.247
+hop count:	2.352
+IFQ drop:	0
+node = 60	seed = 9 
+=====================================================================
+send: 1219   receive:  802	
+r/s Ratio:	0.6579
+delay:	0.135
+delay time:	108.247
+hop count:	3.813
+IFQ drop:	0
+node = 60	seed = 10 
+=====================================================================
+send: 1190   receive:  919	
+r/s Ratio:	0.7723
+delay:	0.119
+delay time:	109.094
+hop count:	3.617
+IFQ drop:	0

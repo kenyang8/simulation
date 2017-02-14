@@ -1,0 +1,29 @@
+Deliver Ratio: 0.453154
+Original r/s Ratio: 0.45262
+Avg EE delay: 0.0186
+hop count: 0.4164
+IFQ drop: 23
+
+Deliver Ratio: 0.554795
+Original r/s Ratio: 0.55478
+Avg EE delay: 0.0388
+hop count: 1.0144
+IFQ drop: 33.4
+
+Deliver Ratio: 0.586419
+Original r/s Ratio: 0.58588
+Avg EE delay: 0.0334
+hop count: 1.3806
+IFQ drop: 24.4
+
+Deliver Ratio: 0.736315
+Original r/s Ratio: 0.7359
+Avg EE delay: 0.0306
+hop count: 1.3186
+IFQ drop: 23.8
+
+Deliver Ratio: 0.724344
+Original r/s Ratio: 0.72422
+Avg EE delay: 0.03
+hop count: 1.778
+IFQ drop: 38

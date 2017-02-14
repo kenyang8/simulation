@@ -1,0 +1,80 @@
+node = 70	seed = 1 
+=====================================================================
+send: 592   receive:  211	
+r/s Ratio:	0.3564
+delay:	0.048
+delay time:	10.050
+hop count:	1.123
+IFQ drop:	0
+node = 70	seed = 2 
+=====================================================================
+send: 589   receive:  254	
+r/s Ratio:	0.4312
+delay:	0.050
+delay time:	12.578
+hop count:	1.185
+IFQ drop:	0
+node = 70	seed = 3 
+=====================================================================
+send: 599   receive:  73	
+r/s Ratio:	0.1219
+delay:	0.054
+delay time:	3.977
+hop count:	1.548
+IFQ drop:	0
+node = 70	seed = 4 
+=====================================================================
+send: 587   receive:  224	
+r/s Ratio:	0.3816
+delay:	0.044
+delay time:	9.834
+hop count:	1.009
+IFQ drop:	0
+node = 70	seed = 5 
+=====================================================================
+send: 612   receive:  142	
+r/s Ratio:	0.2320
+delay:	0.065
+delay time:	9.181
+hop count:	1.725
+IFQ drop:	0
+node = 70	seed = 6 
+=====================================================================
+send: 603   receive:  127	
+r/s Ratio:	0.2106
+delay:	0.055
+delay time:	6.930
+hop count:	1.803
+IFQ drop:	0
+node = 70	seed = 7 
+=====================================================================
+send: 590   receive:  181	
+r/s Ratio:	0.3068
+delay:	0.048
+delay time:	8.736
+hop count:	1.381
+IFQ drop:	0
+node = 70	seed = 8 
+=====================================================================
+send: 588   receive:  171	
+r/s Ratio:	0.2908
+delay:	0.061
+delay time:	10.454
+hop count:	2.386
+IFQ drop:	0
+node = 70	seed = 9 
+=====================================================================
+send: 597   receive:  283	
+r/s Ratio:	0.4740
+delay:	0.045
+delay time:	12.758
+hop count:	1.071
+IFQ drop:	0
+node = 70	seed = 10 
+=====================================================================
+send: 595   receive:  229	
+r/s Ratio:	0.3849
+delay:	0.061
+delay time:	13.909
+hop count:	1.616
+IFQ drop:	0

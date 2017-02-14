@@ -1,0 +1,265 @@
+ong int) type is possible. The calculation had literal value
+	"1" where it needed a value "1L" to compute the correct result. Error
+	detected via testing with the math::bigfloat package [Bug 1567222]
+
+	* generic/tclPkg.c (CompareVersion):	Flatten strcmp() results to
+	{-1, 0, 1} to match expectations of CompareVersion() callers.
+
+2006-09-27  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/regc_color.c (singleton):
+	* generic/regc_cvec.c (addmcce):
+	* generic/regcomp.c (compile, dovec): the static function addmcce does
+	nothing when called with two NULL pointers; the only call is by
+	compile with two NULL pointers (regcomp.c #includes regc_cvec.c).
+	Large parts (all?) the code for mcce (multi character collating
+	element) that we do not use is ifdef'ed out with the macro
+	REGEXP_MCCE_ENABLE.
+	This silences coverity bugs 7, 16, 80
+
+	* generic/regc_color.c (uncolorchain):
+	* generic/regc_nfa.c (freearc): changed tests and asserts to
+	equivalent formulation, designed to avoid an explicit comparison to
+	NULL and satisfy coverity that 6 and 9 are not bugs.
+
+2006-09-27  Andreas Kupries  <andreask@activestate.com>
+
+	* tests/pkg.test: Added test for version comparison at the 32bit
+	boundary. [Bug 1563836]
+
+	* generic/tclPkg.c: Rewrote CompareVersion to perform string
+	comparison instead of numeric. This breaks through the 32bit limit on
+	version numbers. See code for details (handling of leading zeros,
+	signs, etc.). un-CONSTed some arguments of CompareVersions,
+	RequirementSatisfied, and AllRequirementsSatisfied. The new compare
+	modifies the string (temporary string terminators). All callers use
+	heap-allocated ver-intreps, so we are good with that. [Bug 1563836]
+
+2006-09-27  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclFileName.c (TclGlob): added a panic for a call with
+	TCL_GLOBMODE_TAILS and pathPrefix==NULL. This would cause a segfault,
+	as found by coverity #26.
+
+2006-09-26  Kevin B. Kenny  <kennykb@acm.org>
+
+	* doc/Encoding.3:	 Added covariant 'const' qualifier for the
+	* generic/tcl.decls:	 Tcl_EncodingType argument to
+	* generic/tclEncoding.c: Tcl_CreateEncoding. [Further TIP#27 work.]
+	* generic/tclDecls.h:	 Reran 'make genstubs'.
+
+2006-09-26  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* win/makefile.vc:  Additional compiler flags and amd64 support.
+	* win/nmakehlp.c:
+	* win/rules.vc:
+
+2006-09-26  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tcl.h:	As 2006-09-22 commit from Donal K. Fellows
+	demonstrates, "#define NULL 0" is just wrong, and as a quotable chat
+	figure observed, "If NULL isn't defined, we're not using a C compiler"
+	Improper fallback definition of NULL removed.
+
+2006-09-25  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* generic/tcl.h:	More fixing which struct stat to refer to.
+	* generic/tclGetDate.y: Some casts from time_t to int required.
+	* generic/tclTimer.c:	Tcl_Time structure members are longs.
+	* win/makefile.vc:	Support for varying compiler options
+	* win/rules.vc:		and build to platform-specific subdirs.
+
+2006-09-25  Andreas Kupries  <andreask@activestate.com>
+
+	* generic/tclIO.c (Tcl_StackChannel): Fixed [Bug 1564642], aka
+	coverity #51. Extended loop condition, added checking for NULL to
+	prevent seg.fault.
+
+2006-09-25  Andreas Kupries  <andreask@activestate.com>
+
+	* doc/package.n: Fixed nits reported by Daniel Steffen in the TIP#268
+	changes.
+
+2006-09-25  Kevin B. Kenny  <kennykb@acm.org>
+
+	* generic/tclNotify.c (Tcl_DeleteEvents): Simplified the code in hopes
+	of making the invariants clearer and proving to Coverity that the
+	event queue memory is managed correctly.
+
+2006-09-25  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclNotify.c (Tcl_DeleteEvents): Make it clear what happens
+	when the event queue is mismanaged. [Bug 1564677], coverity bug #10.
+
+2006-09-24  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclParse.c (Tcl_ParseCommand): also return an error if
+	start==NULL and numBytes<0. This is coverity's bug #20
+
+	* generic/tclStringObj.c (STRING_SIZE): fix allocation for 0-length
+	strings. This is coverity's bugs #54-5
+
+2006-09-22  Andreas Kupries  <andreask@activestate.com>
+
+	* generic/tclInt.h: Moved TIP#268's field 'packagePrefer' to the end
+	of the structure, for better backward compatibility.
+
+2006-09-22  Andreas Kupries  <andreask@activestate.com>
+
+	TIP#268 IMPLEMENTATION
+
+	* generic/tclDecls.h:	 Regenerated from tcl.decls.
+	* generic/tclStubInit.c:
+
+	* doc/PkgRequire.3: Documentation of extended API, extended testsuite.
+	* doc/package.n:
+	* tests/pkg.test:
+
+	* generic/tcl.decls: Implementation.
+	* generic/tclBasic.c:
+	* generic/tclConfig.c:
+	* generic/tclInt.h:
+	* generic/tclPkg.c:
+	* generic/tclTest.c:
+	* generic/tclTomMathInterface.c:
+	* library/init.tcl:
+	* library/package.tcl:
+	* library/tm.tcl:
+
+2006-09-22  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclThreadTest.c (TclCreateThread): Use NULL instead of 0 as
+	end-of-strings marker to Tcl_AppendResult; the difference matters on
+	64-bit machines. [Bug 1562528]
+
+2006-09-21  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclUtil.c:	Dropped ParseInteger() routine. TclParseNumber
+	covers the task just fine.
+
+2006-09-19  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclEvent.c (Tcl_VwaitObjCmd): Rewrite so that an exceeded
+	limit trapped in a vwait cannot cause a dangerous dangling trace.
+
+2006-09-19  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c (INST_EXPON):	Native type overflow detection
+	* tests/expr.test:	was completely broken. Falling back on use of
+	bignums for all non-trivial ** calculations until
+	native-type-constrained special cases can be done carefully and
+	correctly. [Bug 1561260]
+
+2006-09-15  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* library/http/http.tcl:      Change " " -> "+" url encoding mapping
+	* library/http/pkgIndex.tcl:  to " " -> "%20" as per RFC 3986.
+	* tests/http.test (http-5.1): bump http to 2.5.3
+	* unix/Makefile.in:
+	* win/Makefile.in:
+
+2006-09-12  Andreas Kupries  <andreask@activestate.com>
+
+	* unix/configure.in (HAVE_MTSAFE_GETHOST*): Modified to recognize
+	HP-UX 11.00 and beyond as having mt-safe implementations of the
+	gethost functions.
+	* unix/configure: Regenerated, using autoconf 2.59
+
+	* unix/tclUnixCompat.c (PadBuffer): Fixed bug in calculation of the
+	increment needed to align the pointer, and added documentation
+	explaining why the macro is implemented as it is.
+
+2006-09-11  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* win/rules.vc:	   Updated to install http, tcltest and msgcat as
+	* win/makefile.vc: Tcl Modules (as per Makefile.in).
+	* win/makefile.vc: Added tommath_(super)class headers.
+
+2006-09-11  Andreas Kupries  <andreask@activestate.com>
+
+	* unix/Makefile.in (install-libraries): Fixed typo tcltest 2.3.9 ->
+	2.3.0.
+
+2006-09-11  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/tclUnixCompat.c: make compatLock static and only declare it
+	when it will actually be used; #ifdef parts of TSD that are not always
+	needed; adjust #ifdefs to cover all possible cases; fix whitespace.
+
+2006-09-11  Andreas Kupries  <andreask@activestate.com>
+
+	* tests/msgcat.test: Bumped version in auxiliary files as well.
+	* doc/msgcat.n:
+
+2006-09-11  Kevin B. Kenny  <kennykb@acm.org>
+
+	* unix/Makefile.in:	Bumped msgcat version to 1.4.2 to be
+	* win/Makefile.in:	consistent with dgp's commits of 2006-09-10.
+
+2006-09-11  Don Porter	<dgp@users.sourceforge.net>
+
+	* library/msgcat/msgcat.tcl:	Removed some unneeded [uplevel]s.
+
+2006-09-10  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c:		Corrected INST_EXPON flaw that treated
+	* tests/expr.test:		$x**1 as $x**3. [Bug 1555371]
+
+	* doc/tcltest.n:		Bump to version tcltest 2.3.0 to
+	* library/tcltest/pkgIndex.tcl: account for new "-verbose line"
+	* library/tcltest/tcltest.tcl:	feature.
+	* unix/Makefile.in:
+	* win/Makefile.in:
+	* win/makefile.bc:
+	* win/makefile.vc:
+
+	* library/msgcat/msgcat.tcl:	Bump to version msgcat 1.4.2 to
+	* library/msgcat/pkgIndex.tcl:	account for modifications.
+
+2006-09-10  Daniel Steffen  <das@users.sourceforge.net>
+
+	* library/msgcat/msgcat.tcl (msgcat::Init): on Darwin, add fallback of
+	* tests/msgcat.test:			    default msgcat locale to
+	* unix/tclUnixInit.c (TclpSetVariables):    current CFLocale
+	identifier if available (via private ::tcl::mac::locale global, set at
+	interp init when on Mac OS X 10.3 or later with CoreFoundation).
+
+	* library/tcltest/tcltest.tcl: add 'line' verbose level: prints source
+	* doc/tcltest.n:	       file line information of failing tests.
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: add new tclUnixCompat.c file;
+	revise tests target to use new tcltest 'line' verbose level.
+
+	* unix/configure.in: add descriptions to new AC_DEFINEs for MT-safe.
+	* unix/tcl.m4: add caching to new SC_TCL_* macros for MT-safe wrappers
+	* unix/configure: autoconf-2.59
+	* unix/tclConfig.h.in: autoheader-2.59
+
+2006-09-08  Zoran Vasiljevic <vasiljevic@users.sourceforge.net>
+
+	* unix/tclUnixCompat.c: Added fallback to gethostbyname() and
+	gethostbyaddr() if the implementation is known to be MT-safe
+	(currently for Darwin 6 or later only).
+
+	* unix/configure.in: Assume gethostbyname() and gethostbyaddr() are
+	MT-safe starting with Darwin 6 (Mac OSX 10.2).
+
+	* unix/configure: Regenerated with autoconf V2.59
+
+2006-09-08  Andreas Kupries  <andreask@activestate.com>
+
+	* unix/tclUnixCompat.c: Fixed conditions for CopyArray/CopyString, and
+	CopyHostent. Also fixed bad var names in TclpGetHostByName.
+
+2006-09-07  Zoran Vasiljevic <vasiljevic@users.sourceforge.net>
+
+	* unix/tclUnixCompat.c: Added fallback to MT-unsafe library calls if
+	TCL_THREADS is not defined.
+	Fixed alignment of arrays copied by CopyArray() to be on the
+	sizeof(char *) boundary.
+
+2006-09-07  Zoran Vasiljevic <vasiljevic@users.sourceforge.net>
+
+	* unix/tclUnixChan.c:	Rewritten MT-safe wrappers to return ptrs to
+	* unix/tclUnixCompat.c: TSD storage making them all look like their
+	* unix/tclUnixFCmd.c:	MT-unsafe

@@ -1,0 +1,35 @@
+=============================================
+speed = 5	
+Deliver Ratio: 0.764623
+Original r/s Ratio: 0.76477
+Avg EE delay: 0.0985
+hop count: 2.8505
+IFQ drop: 0
+=============================================
+speed = 10	
+Deliver Ratio: 0.671173
+Original r/s Ratio: 0.67113
+Avg EE delay: 0.0911
+hop count: 2.7819
+IFQ drop: 0
+=============================================
+speed = 15	
+Deliver Ratio: 0.63401
+Original r/s Ratio: 0.6343
+Avg EE delay: 0.0911
+hop count: 2.8343
+IFQ drop: 0
+=============================================
+speed = 20	
+Deliver Ratio: 0.623367
+Original r/s Ratio: 0.6233
+Avg EE delay: 0.0877
+hop count: 2.7334
+IFQ drop: 0
+=============================================
+speed = 25	
+Deliver Ratio: 0.627089
+Original r/s Ratio: 0.62692
+Avg EE delay: 0.0886
+hop count: 2.731
+IFQ drop: 0

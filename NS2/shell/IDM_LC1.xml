@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<!-- Cars in a City Center using the SpaceGraph and MOBIL. -->
+<universe>
+<dimx>1000.0</dimx>
+<dimy>1000.0</dimy>
+<seed>84</seed>
+<extension class="de.uni_stuttgart.informatik.canu.mobisim.extensions.NSOutput" output="/home/relax/Ken/simulation/VanetMobism/samples/mobility/n30s84.tcl"/>
+<extension class="de.uni_stuttgart.informatik.canu.mobisim.simulations.TimeSimulation" param="400"/> 
+	<extension name="SpatialModel" class="de.uni_stuttgart.informatik.canu.spatialmodel.core.SpatialModel" min_x="0" max_x="1000" min_y="0" max_y="1000">
+	   <max_traffic_lights>15</max_traffic_lights>
+		 	<reflect_directions>true</reflect_directions>
+		<number_lane full="false" max="5" dir="true">2</number_lane>
+	</extension> 	
+	<extension name="TrafficLight" class="eurecom.spatialmodel.extensions.TrafficLight" step="15000"/>
+<!--  <extension class="eurecom.spacegraph.SpaceGraph" cluster="true">
+		<clusters density="0.000001">
+      <cluster id="suburban">
+        <density>0.000005</density>
+        <ratio>1.0</ratio>
+				<speed>13</speed>
+      </cluster>
+		</clusters>
+ </extension>--> 
+
+ <extension class="eurecom.usergraph.UserGraph">  
+<vertex>  
+   <id>0</id> <x>50</x> <y>50</y>  
+</vertex>  
+<vertex>  
+   <id>1</id> <x>350</x> <y>50</y>  
+</vertex>  
+<vertex>  
+   <id>2</id> <x>650</x> <y>50</y>  
+</vertex>  
+<vertex>  
+   <id>3</id> <x>950</x> <y>50</y>  
+</vertex>  
+<vertex>  
+   <id>4</id> <x>50</x> <y>350</y>  
+</vertex>  
+<vertex>  
+   <id>5</id> <x>350</x> <y>350</y>  
+</vertex>  
+<vertex>  
+   <id>6</id> <x>650</x> <y>350</y>  
+</vertex>  
+<vertex>  
+   <id>7</id> <x>950</x> <y>350</y>  
+</vertex>  
+<vertex>  
+   <id>8</id> <x>50</x> <y>650</y>  
+</vertex>  
+<vertex>  
+   <id>9</id> <x>350</x> <y>650</y>  
+</vertex>  
+<vertex>  
+   <id>10</id> <x>650</x> <y>650</y>  
+</vertex>  
+<vertex>  
+   <id>11</id> <x>950</x> <y>650</y>  
+</vertex>  
+<vertex>  
+   <id>12</id> <x>50</x> <y>950</y>  
+</vertex>  
+<vertex>  
+   <id>13</id> <x>350</x> <y>950</y>  
+</vertex>  
+<vertex>  
+   <id>14</id> <x>650</x> <y>950</y>  
+</vertex>  
+<vertex>  
+   <id>15</id> <x>950</x> <y>950</y>  
+</vertex>  
+
+ 
+
+<edge> <v1>0</v1> <v2>1</v2> <speed>54</speed> </edge>  
+<edge> <v1>0</v1> <v2>4</v2> <speed>54</speed> </edge>  
+<edge> <v1>1</v1> <v2>5</v2> <speed>54</speed> </edge>  
+<edge> <v1>1</v1> <v2>2</v2> <speed>15</speed> </edge>  
+<edge> <v1>2</v1> <v2>6</v2> <speed>15</speed> </edge>  
+<edge> <v1>2</v1> <v2>3</v2> <speed>15</speed> </edge>  
+<edge> <v1>4</v1> <v2>8</v2> <speed>15</speed> </edge>  
+<edge> <v1>4</v1> <v2>5</v2> <speed>15</speed> </edge>  
+<edge> <v1>5</v1> <v2>9</v2> <speed>15</speed> </edge>
+<edge> <v1>5</v1> <v2>6</v2> <speed>15</speed> </edge> 
+<edge> <v1>6</v1> <v2>10</v2> <speed>15</speed> </edge>  
+<edge> <v1>6</v1> <v2>7</v2> <speed>15</speed> </edge>  
+<edge> <v1>8</v1> <v2>12</v2> <speed>15</speed> </edge>  
+<edge> <v1>8</v1> <v2>9</v2> <speed>15</speed> </edge>
+<edge> <v1>9</v1> <v2>13</v2> <speed>15</speed> </edge>  
+<edge> <v1>9</v1> <v2>10</v2> <speed>15</speed> </edge> 
+<edge> <v1>10</v1> <v2>14</v2> <speed>15</speed> </edge>  
+<edge> <v1>10</v1> <v2>11</v2> <speed>15</speed> </edge>
+<edge> <v1>3</v1> <v2>7</v2> <speed>15</speed> </edge>  
+<edge> <v1>7</v1> <v2>11</v2> <speed>15</speed> </edge>  
+<edge> <v1>11</v1> <v2>15</v2> <speed>15</speed> </edge>
+<edge> <v1>12</v1> <v2>13</v2> <speed>15</speed> </edge>  
+<edge> <v1>13</v1> <v2>14</v2> <speed>15</speed> </edge>  
+<edge> <v1>14</v1> <v2>15</v2> <speed>15</speed> </edge>  
+  </extension>
+  <extension name="PosGen" class="de.uni_stuttgart.informatik.canu.tripmodel.generators.RandomInitialPositionGenerator"/>
+  <extension name="TripGen" class="de.uni_stuttgart.informatik.canu.tripmodel.generators.RandomTripGenerator" >
+    <reflect_directions>true</reflect_directions>
+	  <minstay>5.0</minstay> <maxstay>30.0</maxstay>
+  </extension> <nodegroup n="30">
+<extension class="polito.uomm.IDM_LC" initposgenerator="PosGen" tripgenerator="TripGen">
+<minspeed>15</minspeed>
+<maxspeed>15</maxspeed>
+<step>0.1</step>
+<b>0.5</b>
+</extension>
+</nodegroup>
+<extension class="de.uni_stuttgart.informatik.canu.mobisimadd.extensions.GUI">
+<width>640</width>
+<height>480</height>
+<step>1</step>
+</extension>
+<!--
+  <extension class="de.uni_stuttgart.informatik.canu.spatialmodel.extensions.DumpSpatialModel" output="dumped_graph_double_mult_all.fig"/>
+-->
+</universe>

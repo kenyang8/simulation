@@ -1,0 +1,384 @@
+al format@>=
+@<Orient the |blocks| table for translation@>;
+@<Initialize the output buffer mechanism and output the first line@>;
+@<Translate the |Graph| record@>;
+@<Translate the |Vertex| records@>;
+@<Translate the |Arc| records@>;
+@<Output the checksum line@>;
+
+@ During this pass we decrease the |end_addr| field of a |block_rep|,
+so that it points to the first byte of
+the final record in a |vrt| or |ark| block.
+
+The variables |m| and |n| are set to the number of arc records and
+vertex records, respectively.
+
+@<Local variables for |save...@>=
+long m; /* total number of |Arc| records to be translated */
+long n; /* total number of |Vertex| records to be translated */
+register long s; /* accumulator register for arithmetic calculations */
+
+@ One tricky point needs to be observed, in the unusual case that
+there are two or more blocks of \&{Vertex} records: The base block
+|g->vertices| must come first in the final ordering. (This is the only
+exception to the rule that \&{Vertex} and \&{Arc} records each retain
+their relative order with respect to less-than and greater-than.)
+
+@<Orient the |blocks| table for translation@>=
+m=0;@+@<Set |n| to the size of the block that starts with |g->vertices|@>;
+for (cur_block=blocks+block_count-1;cur_block>=blocks;cur_block--) {
+  if (cur_block->cat==vrt) {
+    s=(cur_block->end_addr-cur_block->start_addr)/sizeof(Vertex);
+    cur_block->end_addr=cur_block->start_addr+((s-1)*sizeof(Vertex));
+    if (cur_block->start_addr!=(char*)g->vertices) {
+      cur_block->offset=n;@+ n+=s;
+    } /* otherwise |cur_block->offset| remains zero */
+  }@+else if (cur_block->cat==ark) {
+    s=(cur_block->end_addr-cur_block->start_addr)/sizeof(Arc);
+    cur_block->end_addr=cur_block->start_addr+((s-1)*sizeof(Arc));
+    cur_block->offset=m;
+    m+=s;
+  }
+}
+
+@ @<Set |n| to the size of the block that starts with |g->vertices|@>=
+n=0;
+for (cur_block=blocks+block_count-1;cur_block>=blocks;cur_block--)
+  if (cur_block->start_addr==(char *)g->vertices) {
+    n=(cur_block->end_addr-cur_block->start_addr)/sizeof(Vertex);
+    break;
+  }
+
+@ We will store material to be output in the |buffer| array,
+so that we can compute the correct checksum.
+
+@<Private v...@>=
+static char *buf_ptr; /* the first unfilled position in |buffer| */
+static long magic; /* the checksum */
+
+@ @<Private f...@>=
+static void flushout() /* output the buffer to |save_file| */
+{
+  *buf_ptr++='\n';
+  *buf_ptr='\0';
+  magic=new_checksum(buffer,magic);
+  fputs(buffer,save_file);
+  buf_ptr=buffer;
+}
+
+@ If a supposed string pointer is zero, we output the null string.
+(This case arises when a string field has not been initialized,
+for example in vertices and arcs that have been allocated but not used.)
+
+@<Private f...@>=
+static void prepare_string(s)
+  char *s; /* string that is moved to |item_buf| */
+{@+register char *p,*q;
+  item_buf[0]='"';
+  p=&item_buf[1];
+  if (s==0) goto sready;
+  for (q=s;*q&&p<=&item_buf[MAX_SV_STRING];q++,p++)
+    if (*q=='"'||*q=='\n'||*q=='\\'||imap_ord(*q)==unexpected_char) {
+      anomalies |= bad_string_char;
+      *p='?';
+    }@+else *p=*q;
+  if (*q) anomalies |= string_too_long;
+sready:  *p='"';
+  *(p+1)='\0';
+}
+
+@ The main idea of this part of the program is to format an item into
+|item_buf|, then move it to |buffer|, making sure that there is always
+room for a comma.
+
+@d append_comma *buf_ptr++=','
+
+@<Private f...@>=
+static void move_item()
+{@+register long l=strlen(item_buf);
+  if (buf_ptr+l>&buffer[78]) {
+    if (l<=78) flushout();
+    else {@+register char *p=item_buf;
+      if (buf_ptr>&buffer[77]) flushout();
+           /* no room for initial \.{\char`\"} */
+      do@+{
+        for (;buf_ptr<&buffer[78];buf_ptr++,p++,l--) *buf_ptr=*p;
+        *buf_ptr++='\\';
+        flushout();
+      }@+while(l>78);
+    strcpy(buffer,p);
+    buf_ptr=&buffer[l];
+    return;
+    }
+  }
+  strcpy(buf_ptr,item_buf);
+  buf_ptr+=l;
+}  
+ 
+@ @<Initialize the output buffer mechanism and output the first line@>=
+buf_ptr=buffer;
+magic=0;
+fputs("* GraphBase graph (util_types ",save_file);
+{@+register char*p;
+  for (p=g->util_types;p<g->util_types+14;p++)
+    if (*p=='Z'||*p=='I'||*p=='V'||*p=='S'||*p=='A') fputc(*p,save_file);
+    else fputc('Z',save_file);
+}
+fprintf(save_file,",%ldV,%ldA)\n",n,m);
+
+@ A macro called |trans|, which is sort of an inverse to |fillin|,
+takes care of the main work in the second pass.
+
+@d trans(l,t) translate_field((util*)&(l),t)
+
+@<Private f...@>=
+static void translate_field(l,t)
+  util *l; /* address of field to be output in symbolic form */
+  char t; /* type of formatting desired */
+{@+register block_rep *cur_block;
+  register char* loc;
+  register long tcat; /* category corresponding to |t| */
+  register long tsize; /* record size corresponding to |t| */
+  if (comma_expected) append_comma;
+  else comma_expected=1;
+  switch (t) {
+ default: anomalies|=bad_type_code;
+    /* fall through to case \.Z */
+ case 'Z': buf_ptr--; /* forget spurious comma */
+  if (l->I) anomalies|=ignored_data;
+  return;
+ case 'I': numeric: sprintf(item_buf,"%ld",l->I);@+goto ready;
+ case 'S': prepare_string(l->S);@+goto ready;
+ case 'V': if (l->I==1) goto numeric;
+    tcat=vrt;@+tsize=sizeof(Vertex);@+break;
+ case 'A': tcat=ark;@+tsize=sizeof(Arc);@+break;
+  }
+  @<Translate a pointer variable@>;
+ready:move_item();
+}
+
+@ @<Translate a pointer variable@>=
+loc=(char*)l->V;
+item_buf[0]='0';@+item_buf[1]='\0'; /* |NULL| will be the default */
+if (loc==NULL) goto ready;
+for (cur_block=blocks; cur_block->start_addr>loc; cur_block++) ;
+if (loc>cur_block->end_addr) {
+  anomalies|=addr_not_in_data_area;
+  goto ready;
+}
+if (cur_block->cat!=tcat||(loc-cur_block->start_addr)%tsize!=0) {
+  anomalies|=addr_in_mixed_block;
+  goto ready;
+}
+sprintf(item_buf,"%c%ld",t,
+  cur_block->offset+((loc-cur_block->start_addr)/tsize));
+
+@ @<Translate the |Graph| record@>=
+prepare_string(g->id);
+if (strlen(g->id)>MAX_SV_ID) {
+  strcpy(item_buf+MAX_SV_ID+1,"\"");
+  anomalies|=string_too_long;
+}
+move_item();
+comma_expected=1;
+trans(g->n,'I');
+trans(g->m,'I');
+trans(g->uu,g->util_types[8]);
+trans(g->vv,g->util_types[9]);
+trans(g->ww,g->util_types[10]);
+trans(g->xx,g->util_types[11]);
+trans(g->yy,g->util_types[12]);
+trans(g->zz,g->util_types[13]);
+flushout();
+
+@ @<Translate the |Vertex| records@>=
+{@+register Vertex* v;
+  fputs("* Vertices\n",save_file);
+  for (cur_block=blocks+block_count-1;cur_block>=blocks;cur_block--)
+    if (cur_block->cat==vrt && cur_block->offset==0)
+      @<Translate all |Vertex| records in |cur_block|@>;
+  for (cur_block=blocks+block_count-1;cur_block>=blocks;cur_block--)
+    if (cur_block->cat==vrt && cur_block->offset!=0)
+      @<Translate all |Vertex| records in |cur_block|@>;
+}
+
+@ @<Translate all |Vertex| records in |cur_block|@>=
+for (v=(Vertex*)cur_block->start_addr;
+     v<=(Vertex*)cur_block->end_addr;v++) {
+  comma_expected=0;
+  trans(v->name,'S');
+  trans(v->arcs,'A');
+  trans(v->u,g->util_types[0]);
+  trans(v->v,g->util_types[1]);
+  trans(v->w,g->util_types[2]);
+  trans(v->x,g->util_types[3]);
+  trans(v->y,g->util_types[4]);
+  trans(v->z,g->util_types[5]);
+  flushout();
+}
+
+@ @<Translate the |Arc| records@>=
+{@+register Arc* a;
+  fputs("* Arcs\n",save_file);
+  for (cur_block=blocks+block_count-1;cur_block>=blocks;cur_block--)
+    if (cur_block->cat==ark)
+      for (a=(Arc*)cur_block->start_addr;a<=(Arc*)cur_block->end_addr;a++) {
+        comma_expected=0;
+        trans(a->tip,'V');
+        trans(a->next,'A');
+        trans(a->len,'I');
+        trans(a->a,g->util_types[6]);
+        trans(a->b,g->util_types[7]);
+        flushout();
+      }
+}
+
+@ @<Output the checksum line@>=
+fprintf(save_file,"* Checksum %ld\n",magic);
+
+@ @<Make notes at the end of the file about any changes that were necessary@>=
+if (anomalies) {
+  fputs("> WARNING: I had trouble making this file from the given graph!\n",
+    save_file);
+  if (anomalies&bad_type_code)
+    fputs(">> The original util_types had to be corrected.\n",save_file);
+  if (anomalies&ignored_data)
+    fputs(">> Some data suppressed by Z format was actually nonzero.\n",
+      save_file);
+  if (anomalies&string_too_long)
+    fputs(">> At least one long string had to be truncated.\n",
+      save_file);
+  if (anomalies&bad_string_char)
+    fputs(">> At least one string character had to be changed to '?'.\n",
+      save_file);
+  if (anomalies&addr_not_in_data_area)
+    fputs(">> At least one pointer led out of the data area.\n",save_file);
+  if (anomalies&addr_in_mixed_block)
+    fputs(">> At least one data block had an illegal mixture of records.\n",
+      save_file);
+  if (anomalies&(addr_not_in_data_area+addr_in_mixed_block))
+    fputs(">>  (Pointers to improper data have been changed to 0.)\n",
+      save_file);
+  fputs("> You should be able to read this file with restore_graph,\n",
+      save_file);
+  fputs("> but the graph you get won't be exactly like the original.\n",
+      save_file);
+}
+
+@* Index. Here is a list that shows where the identifiers of this program are
+defined and used.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  2011-06-23  Don Porter  <dgp@users.sourceforge.net>
+
+	*** 8.5.10 TAGGED FOR RELEASE ***
+
+	* changes:	Update for 8.5.10 release.
+
+2011-06-22  Andreas Kupries  <andreask@activestate.com>
+
+	* library/platform/pkgIndex.tcl: Updated to platform 1.0.10. Added
+	* library/platform/platform.tcl: handling of the DEB_HOST_MULTIARCH
+	* unix/Makefile.in: location change for libc.
+	* win/Makefile.in:
+
+	* generic/tclInt.h: Fixed the inadvertently committed disabling of
+	  stack checks, see my 2010-11-15 commit.
+
+2011-06-21  Don Porter  <dgp@users.sourceforge.net>
+
+	* changes:	Update for 8.5.10 release.
+
+	* library/tcltest/tcltest.tcl (loadIntoSlaveInterpreter):
+	* library/tcltest/pkgIndex.tcl: Backport tcltest 2.3.3 for release
+	* unix/Makefile.in: with Tcl 8.5.*.
+	* win/Makefile.in:
+
+	* tests/init.test:	Update test files to use new command.
+	* tests/pkg.test:
+
+	* generic/tclLink.c:	Prevent multiple links to a single Tcl
+	variable when calling Tcl_LinkVar(). [Bug 3317466]
+
+2011-06-13  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclStrToD.c:  [Bug 3315098] Mem leak fix from Gustaf Neumann.
+
+2011-06-02  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Removed TclCleanupLiteralTable(), and old
+	* generic/tclInt.h:	band-aid routine put in place while a fix
+	* generic/tclLiteral.c:	for [Bug 994838] took shape.  No longer needed.
+
+2011-06-02  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclInt.h (TclInvalidateNsCmdLookup): [Bug 3185407]: Extend
+	the set of epochs that are potentially bumped when a command is
+	created, for a slight performance drop (in some circumstances) and
+	improved semantics.
+
+2011-06-01  Jan Nijtmans  <nijtmans@users.sf.net>
+
+	* generic/tclUtil.c:   Fix for [Bug 3309871]: Valgrind finds:
+	invalid read in TclMaxListLength()
+
+2011-05-25  Don Porter  <dgp@users.sourceforge.net>
+
+	* library/msgcat/msgcat.tcl:	Backport improvements to msgcat
+	* library/msgcat/pkgIndex.tcl:	package.  Bump to 1.4.4
+	* unix/Makefile.in
+	* win/Makefile.in
+
+2011-05-24  Venkat Iyer <venkat@comit.com>
+
+	* library/tzdata/Africa/Cairo: Update to Olson tzdata2011g
+
+2011-05-17  Andreas Kupries  <andreask@activestate.com>
+
+	* generic/tclCompile.c (TclFixupForwardJump): Tracked down and fixed
+	* generic/tclBasic.c (TclArgumentBCEnter): the cause of a violation
+	of my assertion that 'ePtr->nline == objc' in TclArgumentBCEnter.
+	When a bytecode was grown during jump fixup the pc -> command line
+	mapping was not updated. When things aligned just wrong the mapping
+	would direct command A to the data for command B, with a different
+	number of arguments.
+
+2011-05-10  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclInt.h:     New internal routines TclScanElement() and
+	* generic/tclUtil.c:    TclConvertElement() are rewritten guts of
+	machinery to produce string rep of lists.  The new routines avoid
+	and correct [Bug 3173086].  See comments for much more detail.
+
+	* generic/tclDictObj.c:         Update all callers.
+	* generic/tclIndexObj.c:
+	* generic/tclListObj.c:
+	* generic/tclUtil.c:
+	* tests/list.test:
+
+2011-05-09  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclListObj.c:	Revise empty string tests so that we avoid
+	potentially expensive string rep generations, especially for dicts.
+
+2011-05-07  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h: fix USE_TCLALLOC so that it can be enabled
+	* unix/Makefile.in: without editing the Makefile
+
+2011-05-05  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclListObj.c:	Stop generating string rep of dict when
+	converting to list.  Tolerate NULL interps more completely.
+
+2011-05-03  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclUtil.c:	Tighten Tcl_SplitList().
+	* generic/tclListObj.c:	Tighten SetListFromAny().
+	* generic/tclDictObj.c:	Tighten SetDictFromAny().
+
+2011-05-02  Don Porter  <dgp@users.sourceforge.net>
+
+	* generic/tclCmdMZ.c:	Revised TclFindElement() interface.  The
+	* generic/tclDictObj.c:	final argument had been bracePtr, the address
+	* generic/tclListObj.c:	of a boolean var, where the caller can be told
+	* generic/tclParse.c:	whether or not the parsed list element was
+	

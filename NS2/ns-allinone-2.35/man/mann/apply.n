@@ -1,0 +1,240 @@
+>
+
+	* generic/tclCompile.c: SetByteCodeFromAny() can no longer return any
+	* generic/tclExecute.c: code other than TCL_OK, so remove code that
+	* generic/tclProc.c:	formerly handled exceptional codes.
+
+2007-06-13  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (TclCompEvalObj): missed update to "there is
+	always a valid frame".
+
+	* generic/tclProc.c (TclObjInterpProcCore): call TEBC directly instead
+	of going through TclCompEvalObj - no need to check the compilation's
+	freshness, this has already been done. This improves speed and should
+	also provide some relief to [Bug 1066755].
+
+2007-06-12  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclBasic.c (Tcl_CreateInterp): Turn the [info] command into
+	* generic/tclCmdIL.c (TclInitInfoCmd):	 an ensemble, making it easier
+	for third-party code to plug into.
+
+	* generic/tclIndexObj.c (Tcl_WrongNumArgs):
+	* generic/tclNamesp.c, generic/tclInt.h (tclEnsembleCmdType): Make
+	Tcl_WrongNumArgs do replacement correctly with ensembles and other
+	sorts of complex replacement strategies.
+
+2007-06-11  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c:	 comments added to explain iPtr->numLevels
+	management.
+
+	* generic/tclNamesp.c:	 tweaks to Tcl_GetCommandFromObj and
+	* generic/tclObj.c:	 TclGetNamespaceFromObj; modified the usage of
+	structs ResolvedCmdName and ResolvedNsname so that the field refNsPtr
+	is NULL for fully qualified names.
+
+2007-06-10  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclBasic.c:	 Further TEOvI split, creating a new
+	* generic/tclCompile.h:	 TclEvalObjvKnownCommand() function to handle
+	* generic/tclExecute.c:	 commands that are already known and are not
+	traced. INST_INVOKE now calls into this function instead of inlining
+	parts of TEOvI. Same perf, better isolation.
+
+	***POTENTIAL INCOMPAT*** There is a subtle issue with the timing of
+	execution traces that is changed here - first change appeared in my
+	commit of 2007-04-03 [Patch 1693802], which caused some divergence
+	between compiled and non-compiled code.
+	***THIS CHANGE IS UNDER REVIEW***
+
+2007-06-10  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* README: updated links. [Bug 1715081]
+
+	* generic/tclExecute.c (TclExecuteByteCode): restore support for
+	INST_CALL_BUILTIN_FUNC1 and INST_CALL_FUNC1 bytecodes to support 8.4-
+	precompiled sources (math functions). [Bug 1720895]
+
+2007-06-10  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h:
+	* generic/tclNamesp.c:
+	* generic/tclObj.c:
+	* generic/tclvar.c: new macros TclGetCurrentNamespace() and
+	TclGetGlobalNamespace(); Tcl_GetCommandFromObj and
+	TclGetNamespaceFromObj rewritten to make the logic clearer; slightly
+	faster too.
+
+2007-06-09  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclExecute.c (INST_INVOKE): isolated two vars to the small
+	block where they are actually used.
+
+	* generic/tclObj.c (Tcl_GetCommandFromObj): rewritten to make the
+	logic clearer; slightly faster too.
+
+	* generic/tclBasic.c:	Split TEOv in two, by separating a processor
+	for non-TCL_OK returns. Also split TEOvI in a full version that
+	handles non-existing and traced commands, and a separate shorter
+	version for the regular case.
+
+	* generic/tclBasic.c:	Moved the generation of command strings for
+	* generic/tclTrace.c:	traces: previously in Tcl_EvalObjv(), now in
+	TclCheck[Interp|Execution]Traces(). Also insured that the strings are
+	properly NUL terminated at the correct length. [Bug 1693986]
+
+	***POTENTIAL INCOMPATIBILITY in internal API***
+	The functions TclCheckInterpTraces() and TclCheckExecutionTraces() (in
+	internal stubs) used to be noops if the command string was NULL, this
+	is not true anymore: if the command string is NULL, they generate an
+	appropriate string from (objc,objv) and use it to call the traces. The
+	caller might as well not call them with a NULL string if he was
+	expecting a noop.
+
+	* generic/tclBasic.c:	Extend usage of TclLimitReady() and
+	* generic/tclExecute.c: (new) TclLimitExceeded() macros.
+	* generic/tclInt.h:
+	* generic/tclInterp.c:
+
+	* generic/tclInt.h:	New TclCleanupCommandMacro for core usage.
+	* generic/tclBasic.c:
+	* generic/tclExecute.c:
+	* generic/tclObj.c:
+
+2007-06-09 Daniel Steffen  <das@users.sourceforge.net>
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: add new Tclsh-Info.plist.in.
+
+2007-06-08  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclCmdMZ.c (Tcl_StringObjCmd): Changed [string first] and
+	* doc/string.n: [string last] so that they have clearer descriptions
+	for those people who know the adage about needles and haystacks. This
+	follows suggestions on comp.lang.tcl...
+
+2007-06-06  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclParse.c: fix for uninit read. [Bug 1732414]
+
+2007-06-06  Daniel Steffen  <das@users.sourceforge.net>
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: add settings for Fix&Continue.
+
+	* unix/configure.in (Darwin):		add plist for tclsh; link the
+	* unix/Makefile.in  (Darwin):		Tcl and tclsh plists into
+	* macosx/Tclsh-Info.plist.in (new):	their binaries in all cases.
+	* macosx/Tcl-Common.xcconfig:
+
+	* unix/tcl.m4 (Darwin): fix CF checks in fat 32&64bit builds.
+	* unix/configure: autoconf-2.59
+
+2007-06-05  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Added interp flag value ERR_LEGACY_COPY to
+	* generic/tclInt.h:	control the timing with which the global
+	* generic/tclNamesp.c:	variables ::errorCode and ::errorInfo get
+	* generic/tclProc.c:	updated after an error. This keeps more
+	* generic/tclResult.c:	precise compatibility with Tcl 8.4.
+	* tests/result.test (result-6.2):	[Bug 1649062]
+
+2007-06-05  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclInt.h:
+	* generic/tclExecute.c: Tcl-stack reform, [Patch 1701202]
+
+2007-06-03  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/Makefile.in: add datarootdir to silence autoconf-2.6x warning.
+
+2007-05-30  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Removed code that dealt with
+	* generic/tclCompile.c: TCL_TOKEN_EXPAND_WORD tokens representing
+	* generic/tclCompile.h: expanded literal words. These sections were
+	mostly in place to enable [info frame] to discover line information in
+	expanded literals. Since the parser now generates a token for each
+	post-expansion word referring to the right location in the original
+	script string, [info frame] gets all the data it needs.
+
+	* generic/tclInt.h:	Revised the parser so that it never produces
+	* generic/tclParse.c:	TCL_TOKEN_EXPAND_WORD tokens when parsing an
+	* tests/parse.test:	expanded literal word; that is, something like
+	{*}{x y z}. Instead, generate the series of TCL_TOKEN_SIMPLE_WORD
+	tokens to represent the words that expansion of the literal string
+	produces. [RFE 1725186]
+
+2007-05-29  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* unix/tclUnixThrd.c (Tcl_JoinThread): fix for 64-bit handling of
+	pthread_join exit return code storage. [Bug 1712723]
+
+2007-05-22  Don Porter	<dgp@users.sourceforge.net>
+
+	[core-stabilizer-branch]
+
+	* unix/configure:	autoconf-2.59 (FC6 fork)
+	* win/configure:
+
+	* README:		Bump version number to 8.5b1
+	* generic/tcl.h:
+	* library/init.tcl:
+	* tools/tcl.wse.in:
+	* unix/configure.in:
+	* unix/tcl.spec:
+	* win/configure.in:
+
+2007-05-18  Don Porter	<dgp@users.sourceforge.net>
+
+	* unix/configure:	autoconf-2.59 (FC6 fork)
+	* win/configure:
+
+	* README:		Bump version number to 8.5a7
+	* generic/tcl.h:
+	* library/init.tcl:
+	* tools/tcl.wse.in:
+	* unix/configure.in:
+	* unix/tcl.spec:
+	* win/configure.in:
+
+	* generic/tclParse.c:	Disable and remove the ALLOW_EXPAND sections
+	* tests/info.test:	that continued to support the deprecated
+	* tests/mathop.test:	{expand} syntax. Updated the few remaining
+	users of that syntax in the test suite.
+
+2007-05-17  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclExecute.c (TclLimitReady): Created a macro version of
+	Tcl_LimitReady just for TEBC, to reduce the amount of times that the
+	bytecode engine calls out to external functions on the critical path.
+	* generic/tclInterp.c (Tcl_LimitReady): Added note to remind anyone
+	doing maintenance that there is a macro version to update.
+
+2007-05-17  Daniel Steffen  <das@users.sourceforge.net>
+
+	* generic/tcl.decls: workaround 'make checkstubs' failures from
+	tclStubLib.c MODULE_SCOPE revert. [Bug 1716117]
+
+2007-05-16  Joe English	 <jenglish@users.sourceforge.net>
+
+	* generic/tclStubLib.c:	 Change Tcl_InitStubs(), tclStubsPtr, and the
+	auxilliary stubs table pointers back to public visibility.
+
+	These symbols need to be exported so that stub-enabled extensions may
+	be statically linked into an extended tclsh or Big Wish with a
+	dynamically-linked libtcl. [Bug 1716117]
+
+2007-05-15  Don Porter	<dgp@users.sourceforge.net>
+
+	* win/configure:	autoconf-2.59 (FC6 fork)
+
+	* library/reg/pkgIndex.tcl:	Bump to registry 1.2.1 to account for
+	* win/configure.in:		[Bug 1682211] fix.
+	* win/makefile.bc:
+	* win/tclWinReg.c:
+
+2007-05-11  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* generic/tclInt.h: Removed TclEvalObjEx and TclGetSrcInfoForPc from
+	tclInt.h now they are

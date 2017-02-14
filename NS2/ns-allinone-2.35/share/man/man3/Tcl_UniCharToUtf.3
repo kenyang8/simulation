@@ -1,0 +1,735 @@
+, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictRemoveCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr;
+    int i, result;
+    int allocatedDict = 0;
+
+    if (objc < 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary ?key ...?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = objv[1];
+    if (Tcl_IsShared(dictPtr)) {
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+	allocatedDict = 1;
+    }
+    for (i=2 ; i<objc ; i++) {
+	result = Tcl_DictObjRemove(interp, dictPtr, objv[i]);
+	if (result != TCL_OK) {
+	    if (allocatedDict) {
+		TclDecrRefCount(dictPtr);
+	    }
+	    return TCL_ERROR;
+	}
+    }
+    Tcl_SetObjResult(interp, dictPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictMergeCmd --
+ *
+ *	This function implements the "dict merge" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#163 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictMergeCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *targetObj, *keyObj, *valueObj;
+    int allocatedDict = 0;
+    int i, done;
+    Tcl_DictSearch search;
+
+    if (objc == 1) {
+	/*
+	 * No dictionary arguments; return default (empty value).
+	 */
+
+	return TCL_OK;
+    }
+
+    /*
+     * Make sure first argument is a dictionary.
+     */
+
+    targetObj = objv[1];
+    if (targetObj->typePtr != &tclDictType) {
+	if (SetDictFromAny(interp, targetObj) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+    }
+
+    if (objc == 2) {
+	/*
+	 * Single argument, return it.
+	 */
+
+	Tcl_SetObjResult(interp, objv[1]);
+	return TCL_OK;
+    }
+
+    /*
+     * Normal behaviour: combining two (or more) dictionaries.
+     */
+
+    if (Tcl_IsShared(targetObj)) {
+	targetObj = Tcl_DuplicateObj(targetObj);
+	allocatedDict = 1;
+    }
+    for (i=2 ; i<objc ; i++) {
+	if (Tcl_DictObjFirst(interp, objv[i], &search, &keyObj, &valueObj,
+		&done) != TCL_OK) {
+	    if (allocatedDict) {
+		TclDecrRefCount(targetObj);
+	    }
+	    return TCL_ERROR;
+	}
+	while (!done) {
+	    /*
+	     * Next line can't fail; already know we have a dictionary in
+	     * targetObj.
+	     */
+
+	    Tcl_DictObjPut(NULL, targetObj, keyObj, valueObj);
+	    Tcl_DictObjNext(&search, &keyObj, &valueObj, &done);
+	}
+	Tcl_DictObjDone(&search);
+    }
+    Tcl_SetObjResult(interp, targetObj);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictKeysCmd --
+ *
+ *	This function implements the "dict keys" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictKeysCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *listPtr;
+    char *pattern = NULL;
+
+    if (objc!=2 && objc!=3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary ?pattern?");
+	return TCL_ERROR;
+    }
+
+    /*
+     * A direct check that we have a dictionary. We don't start the iteration
+     * yet because that might allocate memory or set locks that we do not
+     * need. [Bug 1705778, leak K04]
+     */
+
+    if (objv[1]->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, objv[1]);
+
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+
+    if (objc == 3) {
+	pattern = TclGetString(objv[2]);
+    }
+    listPtr = Tcl_NewListObj(0, NULL);
+    if ((pattern != NULL) && TclMatchIsTrivial(pattern)) {
+	Tcl_Obj *valuePtr = NULL;
+
+	Tcl_DictObjGet(interp, objv[1], objv[2], &valuePtr);
+	if (valuePtr != NULL) {
+	    Tcl_ListObjAppendElement(NULL, listPtr, objv[2]);
+	}
+    } else {
+	Tcl_DictSearch search;
+	Tcl_Obj *keyPtr;
+	int done;
+
+	/*
+	 * At this point, we know we have a dictionary (or at least something
+	 * that can be represented; it could theoretically have shimmered away
+	 * when the pattern was fetched, but that shouldn't be damaging) so we
+	 * can start the iteration process without checking for failures.
+	 */
+
+	Tcl_DictObjFirst(NULL, objv[1], &search, &keyPtr, NULL, &done);
+	for (; !done ; Tcl_DictObjNext(&search, &keyPtr, NULL, &done)) {
+	    if (!pattern || Tcl_StringMatch(TclGetString(keyPtr), pattern)) {
+		Tcl_ListObjAppendElement(NULL, listPtr, keyPtr);
+	    }
+	}
+	Tcl_DictObjDone(&search);
+    }
+
+    Tcl_SetObjResult(interp, listPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictValuesCmd --
+ *
+ *	This function implements the "dict values" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictValuesCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *valuePtr, *listPtr;
+    Tcl_DictSearch search;
+    int done;
+    char *pattern;
+
+    if (objc!=2 && objc!=3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary ?pattern?");
+	return TCL_ERROR;
+    }
+
+    if (Tcl_DictObjFirst(interp, objv[1], &search, NULL, &valuePtr,
+	    &done) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (objc == 3) {
+	pattern = TclGetString(objv[2]);
+    } else {
+	pattern = NULL;
+    }
+    listPtr = Tcl_NewListObj(0, NULL);
+    for (; !done ; Tcl_DictObjNext(&search, NULL, &valuePtr, &done)) {
+	if (pattern==NULL || Tcl_StringMatch(TclGetString(valuePtr),pattern)) {
+	    /*
+	     * Assume this operation always succeeds.
+	     */
+
+	    Tcl_ListObjAppendElement(interp, listPtr, valuePtr);
+	}
+    }
+    Tcl_DictObjDone(&search);
+
+    Tcl_SetObjResult(interp, listPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictSizeCmd --
+ *
+ *	This function implements the "dict size" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictSizeCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    int result, size;
+
+    if (objc != 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary");
+	return TCL_ERROR;
+    }
+    result = Tcl_DictObjSize(interp, objv[1], &size);
+    if (result == TCL_OK) {
+	Tcl_SetObjResult(interp, Tcl_NewIntObj(size));
+    }
+    return result;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictExistsCmd --
+ *
+ *	This function implements the "dict exists" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictExistsCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr, *valuePtr;
+    int result;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary key ?key ...?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = TclTraceDictPath(interp, objv[1], objc-3, objv+2,
+	    DICT_PATH_EXISTS);
+    if (dictPtr == NULL) {
+	return TCL_ERROR;
+    }
+    if (dictPtr == DICT_PATH_NON_EXISTENT) {
+	Tcl_SetObjResult(interp, Tcl_NewBooleanObj(0));
+	return TCL_OK;
+    }
+    result = Tcl_DictObjGet(interp, dictPtr, objv[objc-1], &valuePtr);
+    if (result != TCL_OK) {
+	return result;
+    }
+    Tcl_SetObjResult(interp, Tcl_NewBooleanObj(valuePtr != NULL));
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictInfoCmd --
+ *
+ *	This function implements the "dict info" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictInfoCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr;
+    Dict *dict;
+
+    if (objc != 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "dictionary");
+	return TCL_ERROR;
+    }
+
+    dictPtr = objv[1];
+    if (dictPtr->typePtr != &tclDictType) {
+	int result = SetDictFromAny(interp, dictPtr);
+	if (result != TCL_OK) {
+	    return result;
+	}
+    }
+    dict = dictPtr->internalRep.otherValuePtr;
+
+    /*
+     * This next cast is actually OK.
+     */
+
+    Tcl_SetResult(interp, (char *) Tcl_HashStats(&dict->table), TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictIncrCmd --
+ *
+ *	This function implements the "dict incr" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictIncrCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    int code = TCL_OK;
+    Tcl_Obj *dictPtr, *valuePtr = NULL;
+
+    if (objc < 3 || objc > 4) {
+	Tcl_WrongNumArgs(interp, 1, objv, "varName key ?increment?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	/*
+	 * Variable didn't yet exist. Create new dictionary value.
+	 */
+
+	dictPtr = Tcl_NewDictObj();
+    } else if (Tcl_DictObjGet(interp, dictPtr, objv[2], &valuePtr) != TCL_OK) {
+	/*
+	 * Variable contents are not a dict, report error.
+	 */
+
+	return TCL_ERROR;
+    }
+    if (Tcl_IsShared(dictPtr)) {
+	/*
+	 * A little internals surgery to avoid copying a string rep that will
+	 * soon be no good.
+	 */
+
+	char *saved = dictPtr->bytes;
+	Tcl_Obj *oldPtr = dictPtr;
+
+	dictPtr->bytes = NULL;
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+	oldPtr->bytes = saved;
+    }
+    if (valuePtr == NULL) {
+	/*
+	 * Key not in dictionary. Create new key with increment as value.
+	 */
+
+	if (objc == 4) {
+	    /*
+	     * Verify increment is an integer.
+	     */
+
+	    mp_int increment;
+
+	    code = Tcl_GetBignumFromObj(interp, objv[3], &increment);
+	    if (code != TCL_OK) {
+		Tcl_AddErrorInfo(interp, "\n    (reading increment)");
+	    } else {
+		/*
+		 * Remember to dispose with the bignum as we're not actually
+		 * using it directly. [Bug 2874678]
+		 */
+
+		mp_clear(&increment);
+		Tcl_DictObjPut(interp, dictPtr, objv[2], objv[3]);
+	    }
+	} else {
+	    Tcl_DictObjPut(interp, dictPtr, objv[2], Tcl_NewIntObj(1));
+	}
+    } else {
+	/*
+	 * Key in dictionary. Increment its value with minimum dup.
+	 */
+
+	if (Tcl_IsShared(valuePtr)) {
+	    valuePtr = Tcl_DuplicateObj(valuePtr);
+	    Tcl_DictObjPut(interp, dictPtr, objv[2], valuePtr);
+	}
+	if (objc == 4) {
+	    code = TclIncrObj(interp, valuePtr, objv[3]);
+	} else {
+	    Tcl_Obj *incrPtr = Tcl_NewIntObj(1);
+
+	    Tcl_IncrRefCount(incrPtr);
+	    code = TclIncrObj(interp, valuePtr, incrPtr);
+	    Tcl_DecrRefCount(incrPtr);
+	}
+    }
+    if (code == TCL_OK) {
+	Tcl_InvalidateStringRep(dictPtr);
+	valuePtr = Tcl_ObjSetVar2(interp, objv[1], NULL,
+		dictPtr, TCL_LEAVE_ERR_MSG);
+	if (valuePtr == NULL) {
+	    code = TCL_ERROR;
+	} else {
+	    Tcl_SetObjResult(interp, valuePtr);
+	}
+    } else if (dictPtr->refCount == 0) {
+	Tcl_DecrRefCount(dictPtr);
+    }
+    return code;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictLappendCmd --
+ *
+ *	This function implements the "dict lappend" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictLappendCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr, *valuePtr, *resultPtr;
+    int i, allocatedDict = 0, allocatedValue = 0;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "varName key ?value ...?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	allocatedDict = 1;
+	dictPtr = Tcl_NewDictObj();
+    } else if (Tcl_IsShared(dictPtr)) {
+	allocatedDict = 1;
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+    }
+
+    if (Tcl_DictObjGet(interp, dictPtr, objv[2], &valuePtr) != TCL_OK) {
+	if (allocatedDict) {
+	    TclDecrRefCount(dictPtr);
+	}
+	return TCL_ERROR;
+    }
+
+    if (valuePtr == NULL) {
+	valuePtr = Tcl_NewListObj(objc-3, objv+3);
+	allocatedValue = 1;
+    } else {
+	if (Tcl_IsShared(valuePtr)) {
+	    allocatedValue = 1;
+	    valuePtr = Tcl_DuplicateObj(valuePtr);
+	}
+
+	for (i=3 ; i<objc ; i++) {
+	    if (Tcl_ListObjAppendElement(interp, valuePtr,
+		    objv[i]) != TCL_OK) {
+		if (allocatedValue) {
+		    TclDecrRefCount(valuePtr);
+		}
+		if (allocatedDict) {
+		    TclDecrRefCount(dictPtr);
+		}
+		return TCL_ERROR;
+	    }
+	}
+    }
+
+    if (allocatedValue) {
+	Tcl_DictObjPut(interp, dictPtr, objv[2], valuePtr);
+    } else if (dictPtr->bytes != NULL) {
+	Tcl_InvalidateStringRep(dictPtr);
+    }
+
+    resultPtr = Tcl_ObjSetVar2(interp, objv[1], NULL, dictPtr,
+	    TCL_LEAVE_ERR_MSG);
+    if (resultPtr == NULL) {
+	return TCL_ERROR;
+    }
+    Tcl_SetObjResult(interp, resultPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictAppendCmd --
+ *
+ *	This function implements the "dict append" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictAppendCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Tcl_Obj *dictPtr, *valuePtr, *resultPtr;
+    int i, allocatedDict = 0;
+
+    if (objc < 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "varName key ?value ...?");
+	return TCL_ERROR;
+    }
+
+    dictPtr = Tcl_ObjGetVar2(interp, objv[1], NULL, 0);
+    if (dictPtr == NULL) {
+	allocatedDict = 1;
+	dictPtr = Tcl_NewDictObj();
+    } else if (Tcl_IsShared(dictPtr)) {
+	allocatedDict = 1;
+	dictPtr = Tcl_DuplicateObj(dictPtr);
+    }
+
+    if (Tcl_DictObjGet(interp, dictPtr, objv[2], &valuePtr) != TCL_OK) {
+	if (allocatedDict) {
+	    TclDecrRefCount(dictPtr);
+	}
+	return TCL_ERROR;
+    }
+
+    if (valuePtr == NULL) {
+	TclNewObj(valuePtr);
+    } else {
+	if (Tcl_IsShared(valuePtr)) {
+	    valuePtr = Tcl_DuplicateObj(valuePtr);
+	}
+    }
+
+    for (i=3 ; i<objc ; i++) {
+	Tcl_AppendObjToObj(valuePtr, objv[i]);
+    }
+
+    Tcl_DictObjPut(interp, dictPtr, objv[2], valuePtr);
+
+    resultPtr = Tcl_ObjSetVar2(interp, objv[1], NULL, dictPtr,
+	    TCL_LEAVE_ERR_MSG);
+    if (resultPtr == NULL) {
+	return TCL_ERROR;
+    }
+    Tcl_SetObjResult(interp, resultPtr);
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * DictForCmd --
+ *
+ *	This function implements the "dict for" Tcl command. See the user
+ *	documentation for details on what it does, and TIP#111 for the formal
+ *	specification.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	See the user documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+DictForCmd(
+    ClientData dummy,
+    Tcl_Interp *interp,
+    int objc,
+    Tcl_Obj *const *objv)
+{
+    Interp *iPtr = (Interp *) interp;
+    Tcl_Obj *scriptObj, *keyVarObj, *valueVarObj;
+    Tcl_Obj **varv, *keyObj, *valueObj;
+    Tcl_DictSearch search;
+    int varc, done, result;
+
+    if (objc != 4) {
+	Tcl_WrongNumArgs(interp, 1, objv,
+		"{keyVar valueVar} dictionary script");
+	return TCL_ERROR;
+    }
+
+    if (TclListObjGetElements(interp, objv[1], &varc, &varv) != TCL_OK) {
+	return TCL_E

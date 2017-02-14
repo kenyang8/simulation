@@ -1,0 +1,805 @@
+=============================================			13 pair cbr ,transmission range: 250m
+speed = 0	
+Deliver Ratio: 0.68983
+Avg EE delay: 4.23096
+Avg Hops: 3.236
+=============================================
+speed = 20	
+Deliver Ratio: 0.362701
+Avg EE delay: 4.06261
+Avg Hops: 2.54579
+=============================================
+speed = 40	
+Deliver Ratio: 0.281636
+Avg EE delay: 3.78653
+Avg Hops: 2.27441
+=============================================
+speed = 60	
+Deliver Ratio: 0.202611
+Avg EE delay: 4.90267
+Avg Hops: 2.29948
+=============================================
+speed = 80	
+Deliver Ratio: 0.204296
+Avg EE delay: 5.06206
+Avg Hops: 2.06838
+=============================================   
+speed = 100	
+Deliver Ratio: 0.188432
+Avg EE delay: 4.99965
+Avg Hops: 1.96268
+=============================================		24 to 1 , 250m
+speed = 0	
+Deliver Ratio: 0.480683
+Avg EE delay: 5.18489
+Avg Hops: 1.93876
+=============================================
+speed = 20	
+Deliver Ratio: 0.114234
+Avg EE delay: 5.97626
+Avg Hops: 2.23965
+=============================================
+speed = 40	
+Deliver Ratio: 0.114096
+Avg EE delay: 4.93871
+Avg Hops: 2.06846
+=============================================
+speed = 60	
+Deliver Ratio: 0.0975157
+Avg EE delay: 5.42581
+Avg Hops: 2.03548
+=============================================
+speed = 80	
+Deliver Ratio: 0.075872
+Avg EE delay: 5.20692
+Avg Hops: 1.97728
+=============================================
+speed = 100	
+Deliver Ratio: 0.0798621
+Avg EE delay: 5.89687
+Avg Hops: 1.94376
+=============================================   23-26   -24-26,250m  49 nodes
+speed = 0	
+Deliver Ratio: 0.345732
+Avg EE delay: 13.1362
+Avg Hops: 3.101
+=============================================
+speed = 20	
+Deliver Ratio: 0.213292
+Avg EE delay: 4.73073
+Avg Hops: 2.05874
+=============================================
+speed = 40	
+Deliver Ratio: 0.151716
+Avg EE delay: 5.80713
+Avg Hops: 1.92242
+=============================================
+speed = 60	
+Deliver Ratio: 0.118352
+Avg EE delay: 5.98135
+Avg Hops: 1.90162
+=============================================
+speed = 80	
+Deliver Ratio: 0.12061
+Avg EE delay: 7.22508
+Avg Hops: 1.81159
+=============================================
+speed = 100	
+Deliver Ratio: 0.120328
+Avg EE delay: 6.90301
+Avg Hops: 1.69347
+=============================================     14- 36         250m  25 nodes
+speed = 0	
+Deliver Ratio: 0.548504
+Avg EE delay: 6.90932
+Avg Hops: 3.41397
+=============================================
+speed = 20	
+Deliver Ratio: 0.303856
+Avg EE delay: 4.5181
+Avg Hops: 2.48371
+=============================================
+speed = 40	
+Deliver Ratio: 0.253581
+Avg EE delay: 4.19987
+Avg Hops: 2.27346
+=============================================
+speed = 60	
+Deliver Ratio: 0.172861
+Avg EE delay: 4.89367
+Avg Hops: 2.31071
+=============================================
+speed = 80	
+Deliver Ratio: 0.181924
+Avg EE delay: 4.94015
+Avg Hops: 2.09817
+=============================================
+speed = 100	
+Deliver Ratio: 0.175624
+Avg EE delay: 5.33806
+Avg Hops: 1.96946
+=============================================   12 pair    250m
+speed = 0	
+Deliver Ratio: 0.678189
+Avg EE delay: 4.45804
+Avg Hops: 3.42999
+=============================================
+speed = 20	
+Deliver Ratio: 0.389321
+Avg EE delay: 3.33453
+Avg Hops: 2.64926
+=============================================
+speed = 40	
+Deliver Ratio: 0.333097
+Avg EE delay: 3.7889
+Avg Hops: 2.36583
+=============================================
+speed = 60	
+Deliver Ratio: 0.222881
+Avg EE delay: 4.44163
+Avg Hops: 2.37286
+=============================================
+speed = 80	
+Deliver Ratio: 0.221102
+Avg EE delay: 4.31893
+Avg Hops: 2.24902
+=============================================
+speed = 100	
+Deliver Ratio: 0.196901
+Avg EE delay: 4.62798
+Avg Hops: 2.10009
+============================================= 12pair , 200m
+speed = 0	
+Deliver Ratio: 0.717607
+Avg EE delay: 4.90954
+Avg Hops: 3.73877
+=============================================
+speed = 20	
+Deliver Ratio: 0.362428
+Avg EE delay: 3.23786
+Avg Hops: 2.81867
+=============================================
+speed = 40	
+Deliver Ratio: 0.302664
+Avg EE delay: 3.85901
+Avg Hops: 2.46168
+=============================================
+speed = 60	
+Deliver Ratio: 0.208447
+Avg EE delay: 4.02201
+Avg Hops: 2.38682
+=============================================
+speed = 80	
+Deliver Ratio: 0.201709
+Avg EE delay: 4.14611
+Avg Hops: 2.34376
+=============================================
+speed = 100	
+Deliver Ratio: 0.188982
+Avg EE delay: 4.73299
+Avg Hops: 2.14899
+=============================================
+speed = 0	
+Deliver Ratio: 0.783202
+Avg EE delay: 3.3979
+Avg Hops: 3.4574
+=============================================
+speed = 20	
+Deliver Ratio: 0.410722
+Avg EE delay: 2.90563
+Avg Hops: 2.66719
+=============================================
+speed = 40	
+Deliver Ratio: 0.308728
+Avg EE delay: 3.96689
+Avg Hops: 2.42152
+=============================================
+speed = 60	
+Deliver Ratio: 0.2221
+Avg EE delay: 3.89392
+Avg Hops: 2.34086
+=============================================
+speed = 80	
+Deliver Ratio: 0.207887
+Avg EE delay: 4.15382
+Avg Hops: 2.24754
+=============================================
+speed = 100	
+Deliver Ratio: 0.194219
+Avg EE delay: 4.70501
+Avg Hops: 2.10843
+
+=============================================     13P 250M
+speed = 0	
+Deliver Ratio: 0.630928
+Avg EE delay: 7.57872
+Avg Hops: 4.6379
+=============================================
+speed = 20	
+Deliver Ratio: 0.310592
+Avg EE delay: 4.1954
+Avg Hops: 2.47493
+=============================================
+speed = 40	
+Deliver Ratio: 0.174574
+Avg EE delay: 4.71158
+Avg Hops: 2.06931
+=============================================
+speed = 0	
+Deliver Ratio: 0.87933
+Avg EE delay: 1.27222
+Avg Hops: 3.20875
+=============================================
+speed = 20	
+Deliver Ratio: 0.424552
+Avg EE delay: 2.57949
+Avg Hops: 2.38305
+=============================================  15p to 25   250M
+speed = 0	
+Deliver Ratio: 0.677703
+Avg EE delay: 3.91655
+Avg Hops: 2.66537
+=============================================
+speed = 20	
+Deliver Ratio: 0.287946
+Avg EE delay: 3.611
+Avg Hops: 2.41069
+=============================================
+speed = 40	
+Deliver Ratio: 0.217758
+Avg EE delay: 3.26509
+Avg Hops: 2.27069
+=============================================
+speed = 0	
+Deliver Ratio: 0.676671
+Avg EE delay: 3.58342
+Avg Hops: 3.29618
+=============================================
+speed = 20	
+Deliver Ratio: 0.424564
+Avg EE delay: 2.6782
+Avg Hops: 2.29624
+=============================================
+speed = 40	
+Deliver Ratio: 0.288846
+Avg EE delay: 2.77909
+Avg Hops: 2.14741
+=============================================
+speed = 60	
+Deliver Ratio: 0.230925
+Avg EE delay: 3.55609
+Avg Hops: 2.14578
+=============================================
+speed = 80	
+Deliver Ratio: 0.20554
+Avg EE delay: 3.89687
+Avg Hops: 2.11067
+=============================================
+speed = 100	
+Deliver Ratio: 0.182447
+Avg EE delay: 4.20131
+Avg Hops: 2.14399
+=============================================     14p 300m=======================
+speed = 0	
+Deliver Ratio: 0.683927
+Avg EE delay: 4.7307
+Avg Hops: 3.17662
+=============================================
+speed = 20	
+Deliver Ratio: 0.385868
+Avg EE delay: 3.88178
+Avg Hops: 2.16635
+=============================================
+speed = 40	
+Deliver Ratio: 0.2565
+Avg EE delay: 4.65284
+Avg Hops: 1.98625
+=============================================
+speed = 60	
+Deliver Ratio: 0.22546
+Avg EE delay: 4.71072
+Avg Hops: 1.96465
+=============================================
+speed = 80	
+Deliver Ratio: 0.202121
+Avg EE delay: 4.91765
+Avg Hops: 1.90348
+=============================================
+speed = 100	
+Deliver Ratio: 0.178016
+Avg EE delay: 6.09406
+Avg Hops: 1.91584
+=============================================   14P 200M
+speed = 0	
+Deliver Ratio: 0.625537
+Avg EE delay: 7.52936
+Avg Hops: 4.81863
+=============================================
+speed = 20	
+Deliver Ratio: 0.291352
+Avg EE delay: 4.30145
+Avg Hops: 2.86716
+=============================================
+speed = 40	
+Deliver Ratio: 0.20972
+Avg EE delay: 4.52545
+Avg Hops: 2.43718
+=============================================
+speed = 60	
+Deliver Ratio: 0.191479
+Avg EE delay: 4.63731
+Avg Hops: 2.22467
+=============================================
+speed = 80	
+Deliver Ratio: 0.165376
+Avg EE delay: 4.96704
+Avg Hops: 2.18793
+=============================================
+speed = 100	
+Deliver Ratio: 0.138163
+Avg EE delay: 4.91242
+Avg Hops: 2.08575
+=============================================    13p   200M
+speed = 0	
+Deliver Ratio: 0.638534
+Avg EE delay: 7.26109
+Avg Hops: 4.84348
+=============================================
+speed = 20	
+Deliver Ratio: 0.306491
+Avg EE delay: 4.1362
+Avg Hops: 2.88872
+=============================================
+speed = 40	
+Deliver Ratio: 0.218059
+Avg EE delay: 4.49472
+Avg Hops: 2.53193
+=============================================
+speed = 60	
+Deliver Ratio: 0.192471
+Avg EE delay: 4.35489
+Avg Hops: 2.3069
+=============================================
+speed = 80	
+Deliver Ratio: 0.169418
+Avg EE delay: 4.89611
+Avg Hops: 2.19379
+=============================================
+speed = 100	
+Deliver Ratio: 0.141983
+Avg EE delay: 4.92134
+Avg Hops: 2.16032
+=============================================   12p  200M 
+speed = 0	
+Deliver Ratio: 0.664884
+Avg EE delay: 6.80082
+Avg Hops: 4.88148
+=============================================
+speed = 20	
+Deliver Ratio: 0.352921
+Avg EE delay: 3.39607
+Avg Hops: 2.99173
+=============================================
+speed = 40	
+Deliver Ratio: 0.238588
+Avg EE delay: 3.85871
+Avg Hops: 2.66257
+=============================================
+speed = 60	
+Deliver Ratio: 0.228471
+Avg EE delay: 4.19772
+Avg Hops: 2.36527
+=============================================
+speed = 80	
+Deliver Ratio: 0.181748
+Avg EE delay: 4.44217
+Avg Hops: 2.36312
+=============================================
+speed = 100	
+Deliver Ratio: 0.157149
+Avg EE delay: 4.58548
+Avg Hops: 2.24219
+=============================================     12p 250m
+speed = 0	
+Deliver Ratio: 0.751157
+Avg EE delay: 4.3889
+Avg Hops: 4.06198
+=============================================
+speed = 20	
+Deliver Ratio: 0.439942
+Avg EE delay: 3.33125
+Avg Hops: 2.68976
+=============================================
+speed = 40	
+Deliver Ratio: 0.307525
+Avg EE delay: 3.60216
+Avg Hops: 2.39886
+=============================================
+speed = 60	
+Deliver Ratio: 0.260738
+Avg EE delay: 4.12418
+Avg Hops: 2.32084
+=============================================
+speed = 80	
+Deliver Ratio: 0.222131
+Avg EE delay: 4.36101
+Avg Hops: 2.16476
+=============================================
+speed = 100	
+Deliver Ratio: 0.192662
+Avg EE delay: 5.23264
+Avg Hops: 2.15254
+=============================================     12P 300M
+speed = 0	
+Deliver Ratio: 0.852325
+Avg EE delay: 1.44294
+Avg Hops: 3.10954
+=============================================
+speed = 20	
+Deliver Ratio: 0.494562
+Avg EE delay: 2.62621
+Avg Hops: 2.31177
+=============================================
+speed = 40	
+Deliver Ratio: 0.327805
+Avg EE delay: 3.69761
+Avg Hops: 2.1144
+=============================================
+speed = 60	
+Deliver Ratio: 0.278331
+Avg EE delay: 4.13049
+Avg Hops: 2.06074
+=============================================
+speed = 80	
+Deliver Ratio: 0.2415
+Avg EE delay: 4.43757
+Avg Hops: 1.98276
+=============================================
+speed = 100	
+Deliver Ratio: 0.205961
+Avg EE delay: 5.13855
+Avg Hops: 1.98029
+=============================================    12P  100M
+speed = 0	
+Deliver Ratio: nan
+Avg EE delay: nan
+Avg Hops: nan
+=============================================
+speed = 20	
+Deliver Ratio: 0.342572
+Avg EE delay: 4.56389
+Avg Hops: 2.94738
+=============================================
+speed = 40	
+Deliver Ratio: 0.284561
+Avg EE delay: 4.84341
+Avg Hops: 2.33093
+=============================================
+speed = 60	
+Deliver Ratio: 0.245715
+Avg EE delay: 5.17727
+Avg Hops: 2.04031
+=============================================
+speed = 80	
+Deliver Ratio: 0.231048
+Avg EE delay: 5.1446
+Avg Hops: 1.84399
+=============================================
+speed = 100	
+Deliver Ratio: 0.195213
+Avg EE delay: 5.31975
+Avg Hops: 1.7395
+=============================================    12p 50m
+speed = 0	
+Deliver Ratio: nan
+Avg EE delay: nan
+Avg Hops: nan
+=============================================
+speed = 20	
+Deliver Ratio: 0.664879
+Avg EE delay: 6.52053
+Avg Hops: 1.45168
+=============================================
+speed = 40	
+Deliver Ratio: 0.53842
+Avg EE delay: 6.83865
+Avg Hops: 1.34859
+=============================================
+speed = 60	
+Deliver Ratio: 0.497096
+Avg EE delay: 7.54468
+Avg Hops: 1.2013
+=============================================
+speed = 80	
+Deliver Ratio: 0.467839
+Avg EE delay: 7.54366
+Avg Hops: 1.20756
+=============================================
+speed = 100	
+Deliver Ratio: 0.480265
+Avg EE delay: 7.59283
+Avg Hops: 1.15593
+=============================================     12p 75m
+speed = 0	
+Deliver Ratio: nan
+Avg EE delay: nan
+Avg Hops: nan
+=============================================
+speed = 20	
+Deliver Ratio: 0.418673
+Avg EE delay: 5.76523
+Avg Hops: 2.31122
+=============================================
+speed = 40	
+Deliver Ratio: 0.365209
+Avg EE delay: 6.30088
+Avg Hops: 1.63507
+=============================================
+speed = 60	
+Deliver Ratio: 0.356074
+Avg EE delay: 6.48067
+Avg Hops: 1.46704
+=============================================
+speed = 80	
+Deliver Ratio: 0.328202
+Avg EE delay: 6.81434
+Avg Hops: 1.50377
+=============================================
+speed = 100	
+Deliver Ratio: 0.312637
+Avg EE delay: 7.08691
+Avg Hops: 1.30731
+=============================================  12P 150m
+speed = 0	
+Deliver Ratio: nan
+Avg EE delay: nan
+Avg Hops: nan
+=============================================
+speed = 20	
+Deliver Ratio: 0.296725
+Avg EE delay: 3.35394
+Avg Hops: 3.33313
+=============================================
+speed = 40	
+Deliver Ratio: 0.221194
+Avg EE delay: 3.29572
+Avg Hops: 2.84017
+=============================================
+speed = 60	
+Deliver Ratio: 0.188706
+Avg EE delay: 3.08504
+Avg Hops: 2.68209
+=============================================
+speed = 80	
+Deliver Ratio: 0.184826
+Avg EE delay: 3.99122
+Avg Hops: 2.37313
+=============================================
+speed = 100	
+Deliver Ratio: 0.153433
+Avg EE delay: 3.34567
+Avg Hops: 2.31024
+=============================================  12p 275M
+speed = 0	
+Deliver Ratio: 0.803223
+Avg EE delay: 2.59857
+Avg Hops: 3.57762
+=============================================
+speed = 20	
+Deliver Ratio: 0.501117
+Avg EE delay: 2.75809
+Avg Hops: 2.54278
+=============================================
+speed = 40	
+Deliver Ratio: 0.321054
+Avg EE delay: 3.88798
+Avg Hops: 2.23089
+=============================================
+speed = 60	
+Deliver Ratio: 0.280715
+Avg EE delay: 3.69019
+Avg Hops: 2.15632
+=============================================
+speed = 80	
+Deliver Ratio: 0.223093
+Avg EE delay: 4.5714
+Avg Hops: 2.10091
+=============================================
+speed = 100	
+Deliver Ratio: 0.197601
+Avg EE delay: 4.97065
+Avg Hops: 1.99509
+============================================= 12p 250
+speed = 0	
+Deliver Ratio: 0.76948
+Avg EE delay: 3.89099
+Avg Hops: 4.24751
+=============================================
+speed = 20	
+Deliver Ratio: 0.44176
+Avg EE delay: 3.27194
+Avg Hops: 2.65646
+=============================================
+speed = 40	
+Deliver Ratio: 0.326012
+Avg EE delay: 3.91751
+Avg Hops: 2.40024
+=============================================
+speed = 60	
+Deliver Ratio: 0.24529
+Avg EE delay: 4.45628
+Avg Hops: 2.28289
+=============================================
+speed = 80	
+Deliver Ratio: 0.221157
+Avg EE delay: 4.49344
+Avg Hops: 2.19311
+=============================================
+speed = 100	
+Deliver Ratio: 0.203723
+Avg EE delay: 4.82262
+Avg Hops: 2.10442
+=============================================  12p 250 
+speed = 0	
+Deliver Ratio: 0.761853
+Avg EE delay: 3.96111
+Avg Hops: 4.27381
+=============================================
+speed = 20	
+Deliver Ratio: 0.435706
+Avg EE delay: 3.3631
+Avg Hops: 2.65253
+=============================================
+speed = 40	
+Deliver Ratio: 0.323256
+Avg EE delay: 3.81694
+Avg Hops: 2.39127
+=============================================
+speed = 60	
+Deliver Ratio: 0.252749
+Avg EE delay: 4.2542
+Avg Hops: 2.29434
+=============================================
+speed = 80	
+Deliver Ratio: 0.221014
+Avg EE delay: 4.45909
+Avg Hops: 2.20243
+=============================================
+speed = 100	
+Deliver Ratio: 0.204021
+Avg EE delay: 4.78397
+Avg Hops: 2.1213
+=============================================      mobgen  12p 250m
+speed = 0	
+Deliver Ratio: 0.921811
+Avg EE delay: 0.380981
+Avg Hops: 2.78625
+=============================================
+speed = 20	
+Deliver Ratio: 0.447458
+Avg EE delay: 3.46032
+Avg Hops: 2.58547
+=============================================
+speed = 40	
+Deliver Ratio: 0.286313
+Avg EE delay: 4.08141
+Avg Hops: 2.56012
+=============================================
+speed = 60	
+Deliver Ratio: 0.238672
+Avg EE delay: 4.41564
+Avg Hops: 2.33453
+=============================================
+speed = 80	
+Deliver Ratio: 0.219534
+Avg EE delay: 4.75844
+Avg Hops: 2.21137
+=============================================
+speed = 100	
+Deliver Ratio: 0.219128
+Avg EE delay: 4.42017
+Avg Hops: 2.06461
+=============================================   set, 12p 250m
+speed = 0	
+Deliver Ratio: 0.797444
+Avg EE delay: 3.24714
+Avg Hops: 4.06021
+=============================================
+speed = 20	
+Deliver Ratio: 0.444443
+Avg EE delay: 3.21015
+Avg Hops: 2.67661
+=============================================
+speed = 40	
+Deliver Ratio: 0.311632
+Avg EE delay: 3.92779
+Avg Hops: 2.43273
+=============================================
+speed = 60	
+Deliver Ratio: 0.255775
+Avg EE delay: 4.25843
+Avg Hops: 2.32217
+=============================================
+speed = 80	
+Deliver Ratio: 0.220586
+Avg EE delay: 4.75211
+Avg Hops: 2.19402
+=============================================
+speed = 100	
+Deliver Ratio: 0.205861
+Avg EE delay: 4.84768
+Avg Hops: 2.13188
+=============================================     LAR in city environment
+
+node= 30	
+Deliver Ratio: 0.914036
+Avg EE delay: 1.70618
+Avg Hops: 3.83749
+=============================================
+node= 40	
+Deliver Ratio: 0.910771
+Avg EE delay: 0.634549
+Avg Hops: 3.39648
+=============================================
+node= 50	
+Deliver Ratio: 0.911048
+Avg EE delay: 0.265943
+Avg Hops: 3.4505
+=============================================
+node= 60	
+Deliver Ratio: 0.923205
+Avg EE delay: 0.184693
+Avg Hops: 3.45311
+=============================================
+node= 70	
+Deliver Ratio: 0.913894
+Avg EE delay: 0.163944
+Avg Hops: 3.40346
+
+
+==============================================>
+=============================================
+node = 30	
+Deliver Ratio: 0.0211385
+Original r/s Ratio: 0.02113
+Avg EE delay: 0.0385
+hop count: 1.4009
+IFQ drop: 0
+=============================================
+node = 40	
+Deliver Ratio: 0.0358037
+Original r/s Ratio: 0.03582
+Avg EE delay: 0.0516
+hop count: 1.2838
+IFQ drop: 0
+=============================================
+node = 50	
+Deliver Ratio: 0.0533654
+Original r/s Ratio: 0.0534
+Avg EE delay: 0.0675
+hop count: 2.0223
+IFQ drop: 0
+=============================================
+node = 60	
+Deliver Ratio: 0.0622811
+Original r/s Ratio: 0.06236
+Avg EE delay: 0.0749
+hop count: 1.8565
+IFQ drop: 0
+=============================================
+node = 70	
+Deliver Ratio: 0.0830917
+Original r/s Ratio: 0.0832
+Avg EE delay: 0.0883
+hop count: 2.2066
+IFQ drop: 0
+=============================================
+node = 30	
+=============================================
+node = 40	
+=============================================
+node = 50	
+=============================================
+node = 60	
+=============================================
+node = 70	

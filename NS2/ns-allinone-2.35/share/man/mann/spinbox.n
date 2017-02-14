@@ -1,0 +1,564 @@
+--------------------------
+ */
+
+int
+TclpObjLstat(
+    Tcl_Obj *pathPtr,		/* Path of file to stat */
+    Tcl_StatBuf *bufPtr)	/* Filled with results of stat call. */
+{
+    return TclOSlstat(Tcl_FSGetNativePath(pathPtr), bufPtr);
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpGetNativeCwd --
+ *
+ *	This function replaces the library version of getcwd().
+ *
+ * Results:
+ *	The input and output are filesystem paths in native form. The result
+ *	is either the given clientData, if the working directory hasn't
+ *	changed, or a new clientData (owned by our caller), giving the new
+ *	native path, or NULL if the current directory could not be determined.
+ *	If NULL is returned, the caller can examine the standard posix error
+ *	codes to determine the cause of the problem.
+ *
+ * Side effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+ClientData
+TclpGetNativeCwd(
+    ClientData clientData)
+{
+    char buffer[MAXPATHLEN+1];
+
+#ifdef USEGETWD
+    if (getwd(buffer) == NULL)				/* INTL: Native. */
+#else
+    if (getcwd(buffer, MAXPATHLEN+1) == NULL)		/* INTL: Native. */
+#endif
+    {
+	return NULL;
+    }
+    if ((clientData != NULL) && strcmp(buffer, (CONST char*)clientData) == 0) {
+	/*
+	 * No change to pwd.
+	 */
+
+	return clientData;
+    } else {
+	char *newCd = (char *) ckalloc((unsigned) (strlen(buffer) + 1));
+	strcpy(newCd, buffer);
+	return (ClientData) newCd;
+    }
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpGetCwd --
+ *
+ *	This function replaces the library version of getcwd(). (Obsolete
+ *	function, only retained for old extensions which may call it
+ *	directly).
+ *
+ * Results:
+ *	The result is a pointer to a string specifying the current directory,
+ *	or NULL if the current directory could not be determined. If NULL is
+ *	returned, an error message is left in the interp's result. Storage for
+ *	the result string is allocated in bufferPtr; the caller must call
+ *	Tcl_DStringFree() when the result is no longer needed.
+ *
+ * Side effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+CONST char *
+TclpGetCwd(
+    Tcl_Interp *interp,		/* If non-NULL, used for error reporting. */
+    Tcl_DString *bufferPtr)	/* Uninitialized or free DString filled with
+				 * name of current directory. */
+{
+    char buffer[MAXPATHLEN+1];
+
+#ifdef USEGETWD
+    if (getwd(buffer) == NULL)				/* INTL: Native. */
+#else
+    if (getcwd(buffer, MAXPATHLEN+1) == NULL)		/* INTL: Native. */
+#endif
+    {
+	if (interp != NULL) {
+	    Tcl_AppendResult(interp,
+		    "error getting working directory name: ",
+		    Tcl_PosixError(interp), NULL);
+	}
+	return NULL;
+    }
+    return Tcl_ExternalToUtfDString(NULL, buffer, -1, bufferPtr);
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpReadlink --
+ *
+ *	This function replaces the library version of readlink().
+ *
+ * Results:
+ *	The result is a pointer to a string specifying the contents of the
+ *	symbolic link given by 'path', or NULL if the symbolic link could not
+ *	be read. Storage for the result string is allocated in bufferPtr; the
+ *	caller must call Tcl_DStringFree() when the result is no longer
+ *	needed.
+ *
+ * Side effects:
+ *	See readlink() documentation.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+char *
+TclpReadlink(
+    CONST char *path,		/* Path of file to readlink (UTF-8). */
+    Tcl_DString *linkPtr)	/* Uninitialized or free DString filled with
+				 * contents of link (UTF-8). */
+{
+#ifndef DJGPP
+    char link[MAXPATHLEN];
+    int length;
+    CONST char *native;
+    Tcl_DString ds;
+
+    native = Tcl_UtfToExternalDString(NULL, path, -1, &ds);
+    length = readlink(native, link, sizeof(link));	/* INTL: Native. */
+    Tcl_DStringFree(&ds);
+
+    if (length < 0) {
+	return NULL;
+    }
+
+    Tcl_ExternalToUtfDString(NULL, link, length, linkPtr);
+    return Tcl_DStringValue(linkPtr);
+#else
+    return NULL;
+#endif
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * TclpObjStat --
+ *
+ *	This function replaces the library version of stat().
+ *
+ * Results:
+ *	See stat() documentation.
+ *
+ * Side effects:
+ *	See stat() documentation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+TclpObjStat(
+    Tcl_Obj *pathPtr,		/* Path of file to stat */
+    Tcl_StatBuf *bufPtr)	/* Filled with results of stat call. */
+{
+    CONST char *path = Tcl_FSGetNativePath(pathPtr);
+    if (path == NULL) {
+	return -1;
+    } else {
+	return TclOSstat(path, bufPtr);
+    }
+}
+
+#ifdef S_IFLNK
+
+Tcl_Obj*
+TclpObjLink(
+    Tcl_Obj *pathPtr,
+    Tcl_Obj *toPtr,
+    int linkAction)
+{
+    if (toPtr != NULL) {
+	CONST char *src = Tcl_FSGetNativePath(pathPtr);
+	CONST char *target = NULL;
+
+	if (src == NULL) {
+	    return NULL;
+	}
+
+	/*
+	 * If we're making a symbolic link and the path is relative, then we
+	 * must check whether it exists _relative_ to the directory in which
+	 * the src is found (not relative to the current cwd which is just not
+	 * relevant in this case).
+	 *
+	 * If we're making a hard link, then a relative path is just converted
+	 * to absolute relative to the cwd.
+	 */
+
+	if ((linkAction & TCL_CREATE_SYMBOLIC_LINK)
+		&& (Tcl_FSGetPathType(toPtr) == TCL_PATH_RELATIVE)) {
+	    Tcl_Obj *dirPtr, *absPtr;
+
+	    dirPtr = TclPathPart(NULL, pathPtr, TCL_PATH_DIRNAME);
+	    if (dirPtr == NULL) {
+		return NULL;
+	    }
+	    absPtr = Tcl_FSJoinToPath(dirPtr, 1, &toPtr);
+	    Tcl_IncrRefCount(absPtr);
+	    if (Tcl_FSAccess(absPtr, F_OK) == -1) {
+		Tcl_DecrRefCount(absPtr);
+		Tcl_DecrRefCount(dirPtr);
+
+		/*
+		 * Target doesn't exist.
+		 */
+
+		errno = ENOENT;
+		return NULL;
+	    }
+
+	    /*
+	     * Target exists; we'll construct the relative path we want below.
+	     */
+
+	    Tcl_DecrRefCount(absPtr);
+	    Tcl_DecrRefCount(dirPtr);
+	} else {
+	    target = Tcl_FSGetNativePath(toPtr);
+	    if (target == NULL) {
+		return NULL;
+	    }
+	    if (access(target, F_OK) == -1) {
+		/*
+		 * Target doesn't exist.
+		 */
+
+		errno = ENOENT;
+		return NULL;
+	    }
+	}
+
+	if (access(src, F_OK) != -1) {
+	    /*
+	     * Src exists.
+	     */
+
+	    errno = EEXIST;
+	    return NULL;
+	}
+
+	/*
+	 * Check symbolic link flag first, since we prefer to create these.
+	 */
+
+	if (linkAction & TCL_CREATE_SYMBOLIC_LINK) {
+	    int targetLen;
+	    Tcl_DString ds;
+	    Tcl_Obj *transPtr;
+
+	    /*
+	     * Now we don't want to link to the absolute, normalized path.
+	     * Relative links are quite acceptable (but links to ~user are not
+	     * -- these must be expanded first).
+	     */
+
+	    transPtr = Tcl_FSGetTranslatedPath(NULL, toPtr);
+	    if (transPtr == NULL) {
+		return NULL;
+	    }
+	    target = Tcl_GetStringFromObj(transPtr, &targetLen);
+	    target = Tcl_UtfToExternalDString(NULL, target, targetLen, &ds);
+	    Tcl_DecrRefCount(transPtr);
+
+	    if (symlink(target, src) != 0) {
+		toPtr = NULL;
+	    }
+	    Tcl_DStringFree(&ds);
+	} else if (linkAction & TCL_CREATE_HARD_LINK) {
+	    if (link(target, src) != 0) {
+		return NULL;
+	    }
+	} else {
+	    errno = ENODEV;
+	    return NULL;
+	}
+	return toPtr;
+    } else {
+	Tcl_Obj *linkPtr = NULL;
+
+	char link[MAXPATHLEN];
+	int length;
+	Tcl_DString ds;
+	Tcl_Obj *transPtr;
+
+	transPtr = Tcl_FSGetTranslatedPath(NULL, pathPtr);
+	if (transPtr == NULL) {
+	    return NULL;
+	}
+	Tcl_DecrRefCount(transPtr);
+
+	length = readlink(Tcl_FSGetNativePath(pathPtr), link, sizeof(link));
+	if (length < 0) {
+	    return NULL;
+	}
+
+	Tcl_ExternalToUtfDString(NULL, link, length, &ds);
+	linkPtr = Tcl_NewStringObj(Tcl_DStringValue(&ds),
+		Tcl_DStringLength(&ds));
+	Tcl_DStringFree(&ds);
+	if (linkPtr != NULL) {
+	    Tcl_IncrRefCount(linkPtr);
+	}
+	return linkPtr;
+    }
+}
+#endif /* S_IFLNK */
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpFilesystemPathType --
+ *
+ *	This function is part of the native filesystem support, and returns
+ *	the path type of the given path. Right now it simply returns NULL. In
+ *	the future it could return specific path types, like 'nfs', 'samba',
+ *	'FAT32', etc.
+ *
+ * Results:
+ *	NULL at present.
+ *
+ * Side effects:
+ *	None.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+Tcl_Obj *
+TclpFilesystemPathType(
+    Tcl_Obj *pathPtr)
+{
+    /*
+     * All native paths are of the same type.
+     */
+
+    return NULL;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpNativeToNormalized --
+ *
+ *	Convert native format to a normalized path object, with refCount of
+ *	zero.
+ *
+ *	Currently assumes all native paths are actually normalized already, so
+ *	if the path given is not normalized this will actually just convert to
+ *	a valid string path, but not necessarily a normalized one.
+ *
+ * Results:
+ *	A valid normalized path.
+ *
+ * Side effects:
+ *	None.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+Tcl_Obj *
+TclpNativeToNormalized(
+    ClientData clientData)
+{
+    Tcl_DString ds;
+    Tcl_Obj *objPtr;
+    int len;
+
+    CONST char *copy;
+    Tcl_ExternalToUtfDString(NULL, (CONST char*)clientData, -1, &ds);
+
+    copy = Tcl_DStringValue(&ds);
+    len = Tcl_DStringLength(&ds);
+
+    objPtr = Tcl_NewStringObj(copy,len);
+    Tcl_DStringFree(&ds);
+
+    return objPtr;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclNativeCreateNativeRep --
+ *
+ *	Create a native representation for the given path.
+ *
+ * Results:
+ *	The nativePath representation.
+ *
+ * Side effects:
+ *	Memory will be allocated. The path may need to be normalized.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+ClientData
+TclNativeCreateNativeRep(
+    Tcl_Obj *pathPtr)
+{
+    char *nativePathPtr;
+    Tcl_DString ds;
+    Tcl_Obj *validPathPtr;
+    int len;
+    char *str;
+
+    if (TclFSCwdIsNative()) {
+	/*
+	 * The cwd is native, which means we can use the translated path
+	 * without worrying about normalization (this will also usually be
+	 * shorter so the utf-to-external conversion will be somewhat faster).
+	 */
+
+	validPathPtr = Tcl_FSGetTranslatedPath(NULL, pathPtr);
+	if (validPathPtr == NULL) {
+	    return NULL;
+	}
+    } else {
+	/*
+	 * Make sure the normalized path is set.
+	 */
+
+	validPathPtr = Tcl_FSGetNormalizedPath(NULL, pathPtr);
+	if (validPathPtr == NULL) {
+	    return NULL;
+	}
+	Tcl_IncrRefCount(validPathPtr);
+    }
+
+    str = Tcl_GetStringFromObj(validPathPtr, &len);
+    Tcl_UtfToExternalDString(NULL, str, len, &ds);
+    len = Tcl_DStringLength(&ds) + sizeof(char);
+    Tcl_DecrRefCount(validPathPtr);
+    nativePathPtr = ckalloc((unsigned) len);
+    memcpy((void*)nativePathPtr, (void*)Tcl_DStringValue(&ds), (size_t) len);
+
+    Tcl_DStringFree(&ds);
+    return (ClientData)nativePathPtr;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclNativeDupInternalRep --
+ *
+ *	Duplicate the native representation.
+ *
+ * Results:
+ *	The copied native representation, or NULL if it is not possible to
+ *	copy the representation.
+ *
+ * Side effects:
+ *	Memory will be allocated for the copy.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+ClientData
+TclNativeDupInternalRep(
+    ClientData clientData)
+{
+    char *copy;
+    size_t len;
+
+    if (clientData == NULL) {
+	return NULL;
+    }
+
+    /*
+     * ASCII representation when running on Unix.
+     */
+
+    len = sizeof(char) + (strlen((CONST char*) clientData) * sizeof(char));
+
+    copy = (char *) ckalloc(len);
+    memcpy((void *) copy, (void *) clientData, len);
+    return (ClientData)copy;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpUtime --
+ *
+ *	Set the modification date for a file.
+ *
+ * Results:
+ *	0 on success, -1 on error.
+ *
+ * Side effects:
+ *	None.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+int
+TclpUtime(
+    Tcl_Obj *pathPtr,		/* File to modify */
+    struct utimbuf *tval)	/* New modification date structure */
+{
+    return utime(Tcl_FSGetNativePath(pathPtr), tval);
+}
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * End:
+ */
+     ELF          >                    `3          @     @   AUI‰ıATI‰ÔºÿÿÿÿUH‰ÍSH‰óHƒìI‹4$H‹;è    H‹;H‰îºÿÿÿÿè    H‹;H5    ºÿÿÿÿè    A‹}è    ƒ H‹;H‰ÅH‰Æè    ‹E ƒè…À‰E ~~H‹;H5    ºÿÿÿÿè    A‹}è    ƒ H‹;H‰ÅH‰Æè    ‹E ƒè…À‰E ~3H‹;H5    ºÿÿÿÿè    H    I‰$HƒÄ[]A\A]Ãf„     H‰ïè    ëÃfD  H‰ïè    éuÿÿÿ AWI‰øAVAUATU1íSHì  dH‹%(   H‰„$ø  1ÀH„$   Lœ$`  L”$   ‰l$Ç„$ˆ      I‰ÇH‰D$8H‰ÃHGÇ„$€      Ç„$Œ       Ç„$„       HÇD$È   L‰İH‰D$XH„$€   L‰\$(L‰T$ ÇD$4    M‰ÖH‰D$`H„$à  ÇD$şÿÿÿH‰D$PH„$ó  H‰D$h·D$f‰H‹D$HÀITşH9Ó‚  L)ûHÑûH|$'  Hk‡‚  H='  ¿'  L‰D$HGÇ‰ÇI‰Æ¸   ¯øƒÇè    H…ÀI‰ÅL‹D$„H  H\- L‰şH‰ÇL‰D$HH‰Úè    K<6L‰t$H‹t$ L4í    HÁåLgH‰|$@L‰òIƒäğMìL‰çè    H‹D$H‹t$(H‰êMÄL‰Ïè    L;|$8I‰ÁL‹D$HtL‰ÿL‰D$(H‰D$ è    L‹D$(L‹L$ H‹D$@I\şOt4øIl)ğIDşH9ÃƒË  L‰L$(L‰d$ M‰ïLcd$L-    G¾L% AƒùêtTƒ|$ş„g  ‹|$…ÿ  ÿ  ¸   wHcD$H    ¶AÁAƒùOwH    McÉB¶
+9Â„V  H    B¶ …À„j  H    Hcğ¿   ¶2¶Ñ)×…ÒH‰ÊHcÿM‹ş„`  H÷ÚD‹M‹}HÁâHTD‹"D‹jƒèƒø4wfH    Hc‚HÂÿâA‹@L…ÀtE‹X(E…ÛtA‹Px…Ò„«  ƒÀAƒ¸À   A‰@LŸ  I‹IÇ@8    I‰@0IÇ@@    AÇ@H   D  HÍ    L‰òH)ÂH	HÁáL‰RLrH)ÃH‰èH)ÈH    ¿HhD‰`D‰hD‰H‰xH    ¶0ƒèH˜¾ÑƒùOwH5    HcÉ¶49ò„  H    ¾‰D$HƒÃéıÿÿ H    B¶¶È…É…‰  „À…™  f„     ‹D$4…À„T  ƒ|$4‹´$€   ‹”$„   u>ƒ|$ V  C¾D% ÇD$şÿÿÿƒøêu+L9û„—   HƒëL¿#‹u ‹UIƒîHƒíC¾D% ƒøêtÖƒÀƒøOwÎH    H˜€<u¿H    ¶…Ét°ƒù‰L$„û  H‹D$pHƒÅIƒÆÇD$4   I‰‹„$ˆ   ‰u ‰U‰E‹„$Œ   ‰EéøşÿÿM‰ïf„     »   L;|$8tL‰ÿè    H‹¼$ø  dH3<%(   ‰Ø…3  HÄ  []A\A]A^A_ÃHÁâH‰ïH)×D‹O‹E‰ÌA‰ıéıÿÿL)Øƒè‰„$Œ   1ÀÇD$    é
+ıÿÿ„     H‹T$XH‹|$`H    L‰ÆL‰D$è’ùÿÿ‹´$€   ‹”$„   L‹D$éÉşÿÿf.„     I‹°   M‹˜¨   D‰L$HL‰D$@H‰ĞH‰T$L‰\$L)Ø‰„$„   è    D‹L$HL‹\$I‰ÂH‹T$L‹D$@¶2I‹@¶Î·HöÅ ujöÅ…ı  @„öˆN  €å…¥	  @€ş(…;  HB1öëD  €ù)”Á¶É)ÎHƒÀ…ö~¨I‰€°   ¶HÿH‰Â„É„ãşÿÿ€ù(uÒƒÆëØD  HƒÂI‰°   ésÿÿÿƒù„
+  ‹|$ƒ|$4¸şÿÿÿƒT$4ÿH‹”$ˆ   ‰L$…ÿDÇHƒÅIƒÆ‰D$H‹D$pI‰H‹„$€   H‰UH‰E éşüÿÿH    ¶‰D$éêüÿÿI‹FàI‰@0I‹FğI‰@8Hº×£p=
+×£AÇ@H   AÇ@X   H‰ĞM‹I÷.H‰ĞII‹HÁú?HÁøH)ĞH…    H‰T$HÂHÁàH’H+D$HÁâI)ÓLØI‰@PAƒ@\éêûÿÿH‰ĞL)Ø‰„$Œ   HBI‰€°   ¾‰D$é·úÿÿ…×üÿÿéSıÿÿ 1ÀéÿúÿÿI‹€¸   I‹HéŸûÿÿI‹FøI‹¸   I¯HéˆûÿÿAƒ@LAƒ@(Aƒ@xétûÿÿAƒ@LAƒ@(éeûÿÿI‹FøIÇ@8    IÇ@@    I‰@0A‹A‰@HéAûÿÿH¸    ÿÿÿÿI!ÂIƒÊé+ûÿÿA‹Hº    ÿÿÿÿI!ÒI	ÂéûÿÿI‹FğI‹¸   I¯FøI¯Hé÷úÿÿI÷XpI÷X`I÷XhéæúÿÿI‹FğHºÏ÷Sã¥›Ä IÇ@    IÇ@   I‰ÃH÷êL‰ØL‰\$HÁø?HÁúH)ÂI‹@hLšš  HiÒè  H‰D$@H‹D$M‰XH)ĞAöÃH‰D$¸m  uoL‰ØHº×£p=
+×£H÷êJL‰ÚHÁú?H‰D$HHÁøH‰T$xH)ĞH€H€¸n  HÁâI9Óu-H‹D$HHÁøH+D$xH€H€HÁàI)ÃIƒûHÀH÷ĞHn  L‹\$HºÏ÷Sã¥›Ä L¯ØL‰ØIÁû?H÷êHÁúL)ÚHT$@I‰PhI‹HiÀÀ!  I@péÍùÿÿM‹^øH¸KY†8ÖÅm4I÷ëL‰ØHÁø?H‰D$@HÁúH)ÂL‰ØI‰PHiÒ'  H)ĞH‰ÂH¸×£p=
+×£H‰T$H÷êH‹D$HĞH‹T$HÁøHÁú?H)ĞI‰@H¸×£p=
+×£I÷ëJHÁøH+D$@H€H€HÁàI)ÃH¸KY†8ÖÅm4M‰X M‹I÷ëL‰ØHÁø?H‰D$@HÁúH)ÂL‰ØI‰P0HiÒ'  H)ĞH‰ÂH¸×£p=
+×£H‰T$H÷êH‹D$HĞH‹T$HÁøHÁú?H)ĞI‰@8H¸×£p=
+×£I÷ëJHÁøH+D$@H€H€HÁàI)ÃM‰X@é£øÿÿI~Ø¤  …-úÿÿM‹^ĞHºKY†8ÖÅm4L‰ØH÷êL‰ØHÁø?H‰D$@HÁúH)ÂL‰ØI‰PHiÒ'  H)ĞH‰ÂH¸×£p=
+×£H‰T$H÷êH‹D$HĞH‹T$HÁøHÁú?H)ĞI‰@H¸×£p=
+×£I÷ëJHÁøH+D$@H€H€HÁàI)ÃM‰X I‹FàI‰@0I‹FğI‰@8I‹I‰@@éã÷ÿÿI~ø¤  …mùÿÿM‹^ğéşÿÿI‹FøI‰€€   I‹I‰@éµ÷ÿÿIÇ€€      I‹I‰@é÷ÿÿI‹FøI‰@I‹FğI‰@ I‹I‰@é‚÷ÿÿIÇ@   IÇ@    IÇ@²  ée÷ÿÿI‹I‰@I‹FøI‰@ éQ÷ÿÿI‹Fèë±I‹FØI‰@0I‹FèI‰@8I‹FøI‰@@A‹A‰@Hé'÷ÿÿI‹FèI‰@0I‹FøIÇ@@    I‰@8A‹A‰@Hé÷ÿÿAƒ€    éööÿÿAƒ€ˆ   ééöÿÿAƒ@LéßöÿÿI‹FàI‰@ I‹FğI‰@I‹I‰@éÃöÿÿM‹HºKY†8ÖÅm4L‰ØH÷êL‰ØHÁø?H‰D$@HÁúH)ÂL‰ØI‰PHiÒ'  H)ĞH‰ÂH¸×£p=
+×£H‰T$H÷êH‹D$HĞH‹T$HÁøHÁú?H)ĞI‰@H¸×£p=
+×£I÷ëJHÁøH+D$@H€H€HÁàI)ÃM‰X é)öÿÿI‹Fàé†şÿÿI‹FğI‰@I‹I‰@ éöÿÿIÇ€      I‹I‰€˜   éòõÿÿI‹FğI¯FøI‰€   I‹I‰€˜   éÓõÿÿI‹FøI‰€   I‹I‰€˜   é¹õÿÿIÇ€      I‹FøI‰€˜   éõÿÿIÇ€      I‹I‰€˜   é„õÿÿI‹AÇ@X    I‰@PépõÿÿI‹AÇ@X   I‰@Pé\õÿÿI‹FøAÇ@X    I‰@PéGõÿÿI‹FĞI‰@0I‹FàI‰@8I‹FğI‰@@éÔøÿÿI‹FøI‰@I‹I‰@ éõÿÿI‹FğI‰@I‹I‰@ I‹FàI‰@éúôÿÿI@`M‹I‰€¸   éçôÿÿI@hM‹I‰€¸   éÔôÿÿI@pM‹I‰€¸   éÁôÿÿAº   é¶ôÿÿIÇÂÿÿÿÿéªôÿÿIPH¼$€   H    L‰Æ»   èRğÿÿé"öÿÿM‹Hº×£p=
+×£L‰ØH÷êJL‰ÚHÁú?HÁøH)ĞI‰@0H€H€HÁàI)ÃM‰X8é/ôÿÿI‹ˆ°   HÇD$p    HyI‰¸°   H¾¶òöDp„n  1É1öL‰|$D‰L$ë€    H‰ÇL‰ÉH‰I‹
+ƒÆLLBĞHGI‰€°   H¾D¶úBöDyuĞL‰ÈƒşL‹|$D‹L$H‰D$pI‰¸°   A‰°À     H‰øÇD$  L)Øƒè‰„$Œ   é”òÿÿH‹t$PL‹\$hHƒÂëfI‹I‰°   ¶Jÿ¶ùöDxu€ù.uHƒÂL9ŞsÚˆHƒÆI‹I‹°   ëÀÆ I‹€°   H‹|$PD‰L$@L‰T$L‰D$HƒèI‰€°   I+€¨   ƒè‰„$Œ   è    ¶„$à  L‹D$L‹T$D‹L$@ƒøatnH‹t$PH=    ¹   ó¦…É   H¸    ÿÿÿÿÇD$  H!D$péºñÿÿ1ÛéFôÿÿI‰ˆ°   AÇ€À       H‰ÏH‰øÇD$  L)Øƒè‰„$Œ   éñÿÿ€¼$á  mtUH‹t$PH=    ¹   ó¦tŒH‹t$PH=    ¹   ó¦u[H¸    ÿÿÿÿH!D$pÇD$  HƒL$pé+ñÿÿf„     €¼$â   „>ÿÿÿë›è    ƒøpu¦€¼$á  muœ€¼$â   t§ëH‹T$P‹
+HƒÂÿşşş÷Ñ!È%€€€€té‰ÁA»   Áé©€€  DÁHJHDÑ ÀHƒÚH+T$PHƒútE0ÛHƒú„  H‹5    H…ö„Ÿ   H    H‰\$H‰l$D‰L$@D‰ÛL‰T$xH‰ÍL‰D$Hë H‹|$Pº   è    …ÀtHƒÅH‹u H…öt>…ÛuÜH‹|$Pè    …ÀuáH‰éH‹\$H‹l$H‹AD‹L$@L‹D$HH‰D$p‹A‰D$éîïÿÿH‹\$H‹l$D‹L$@L‹T$xL‹D$HH‹5    H…ötMH    H‹|$PL‰D$HL‰T$@H‰T$D‰L$è    …ÀD‹L$H‹T$L‹T$@L‹D$H„?  HƒÂH‹2H…öuºH‹    H…ÒtZH    H‰ÖH‹|$PL‰D$xL‰T$HH‰T$@H‰L$D‰L$è    …ÀD‹L$H‹L$H‹T$@L‹T$HL‹D$x„î  HƒÁH‹1H…öu°H‹L$P‹1HƒÁ†ÿşşş÷Ö!ğ%€€€€té‰ÆÁî©€€  DÆHqHDÎ ÀHƒÙH+L$Pƒé…É~HcÁHD$P€8s„£  H‹5    H    H…ötFH‹|$PL‰D$HL‰T$@H‰T$D‰L$è    …ÀD‹L$H‹T$L‹T$@L‹D$H„,  HƒÂH‹2H…öuº€¼$á   ¶”$à  ui„ÒxiI‹H¾ÊöDHtWH‹5    H    H…ötDH‹|$PL‰D$HH‰L$@‰T$D‰L$è    …ÀD‹L$‹T$H‹L$@L‹D$H„Æ   HƒÁH‹1H…öu¼„ÒtvH‹D$P1ÉH‰Æ€ú.„  ˆHƒÀHƒÆ¶„Òuæ…ÉÆ  tKH‹5    H…öt?H    H‹|$PL‰D$@H‰T$D‰L$è    …ÀD‹L$H‹T$L‹D$@t7HƒÂH‹2H…öuÈÇD$  é€íÿÿ€¼$ã  .…ÕüÿÿÆ„$ã   A³éÅüÿÿH‹BH‰D$p‹B‰D$é4íÿÿH‹AH‰D$p‹A‰D$éíÿÿH…ÒÆ  „QşÿÿH    H‰ÖH‹|$PL‰D$HL‰T$@H‰L$D‰L$è    …ÀD‹L$H‹L$L‹T$@L‹D$HtŸHƒÁH‹1H…öu¾é şÿÿƒÁééşÿÿAUATUH‰õSH‰ËHìè   ƒút0H    H‰Ú¾   H‰ï»   è    HÄè   ‰Ø[]A\A]Ã@ H‹yè    H‹sHT$H‰ïH‰„$À   H‰„$¸   ÇD$8    è    …ÀtHÄè   »   ‰Ø[]A\A]ÃD  H‹sHT$H‰ïè    …ÀuÑH‹s HT$H‰ïè    …À‰ÃuºHcD$ÇD$\    HÇD$@    HÇD$H    HÇD$P    ÇD$X   ÇD$l    HÇD$`    H‰D$ HcD$ÇD$h   Ç„$˜       HÇ„$       Ç„$°       HÇ„$        HÇ„$¨       H‰D$(HcD$Ç„$ˆ       HÇD$p    HÇD$x    HÇ„$€       HÇ„$È       H‰D$0è    H    H‰D$H|$H‰L$ƒ è    ƒø„î   ƒø„«   …À¾ÿÿÿÿH=    …£   H‹|$‹ƒè…À‰ê   ƒ|$8¾ÿÿÿÿH=    [ƒ|$\¾ÿÿÿÿH=    Hƒ|$l¾ÿÿÿÿH=    5ƒ¼$°   ¾ÿÿÿÿH=    ƒ¼$˜   ›   H=    ƒÎÿ€    è    H‰ïH‰Æè    é	şÿÿH=    ¾ÿÿÿÿè    H‰ïH‰Æè    H‹|$‹ƒè…À‰Ùıÿÿè    éÏıÿÿH‹t$H‰ïè    H‹|$‹ƒè…À‰®ıÿÿè    ³éXıÿÿ@ è    éÿÿÿfD  è    I‰Äè    ƒ|$8 I‰Å…F  L‰êL‰æH‰ïè    ƒ|$\ „A  H‹t$H‹T$XH‹L$PH‹D$@Hƒş;‡  Hƒù;‡ı  ƒú„×  ‚ª  ƒú …â  Hƒø‡Ø  HkÀ<HÆHkş<HÏè    L‰æH‰ÂH‰ïè    è    ƒ|$l I‰Å…&  L‰êL‰æH‰ïè    è    ƒ¼$ˆ    I‰Å…µ   L‰êL‰æH‰ïè    è    ƒ¼$°    I‰Åt;ƒ|$8 u4‹¼$    è    L‰îH‰ÂH‰ïè    ‹¼$¨   è    L‰îH‰ÂH‰ïè    L‰êL‰æH‰ïè    è    ƒ¼$˜    I‰Å…T  L‰æH‰ïL‰êè    L‰æH‰ïè    éÏûÿÿè    L‰æH‰ÂH‰ïè    éÿÿÿ‹|$pè    L‰îH‰ÂH‰ïè    ‹|$xè    L‰îH‰ÂH‰ïè    ‹¼$€   è    L‰îH‰ÂH‰ïè    éşşÿÿ‹|$`÷ßè    L‰îH‰ÂH‰ïè    ¿   +|$hè    L‰îH‰ÂH‰ïè    é şÿÿHPÿHƒúw:¿   H™H÷ÿHkÒ<HÖHkş<HÏéSşÿÿHPÿHƒúw¿   H™H÷ÿHBé(şÿÿHƒÏÿé-şÿÿ‹|$ è    L‰îH‰ÂH‰ïè    ‹|$(è    L‰îH‰ÂH‰ïè    ‹|$0è    L‰îH‰ÂH‰ïè    épıÿÿ‹¼$   è    L‰îH‰ÂH‰ïè    ‹|$(è    L‰îH‰ÂH‰ïè    évşÿÿ (characters  - ) 
+ a.m. p.m. syntax error memory exhausted  more than one date in string a b c d e f g h i k l m n o p q r s t u v w x y z gmt ut utc uct wet bst wat at nft nst ndt ast adt est edt cst cdt mst mdt pst pdt yst ydt hst hdt cat ahst nt idlw cet cest met mewt mest swt sst fwt fst eet bt it zp4 zp5 ist zp6 wast wadt jt cct jst jdt kst kdt cast cadt east eadt gst nzt nzst nzdt idle dst tomorrow yesterday today now last this next ago epoch stardate year month fortnight week day hour minute min second sec january february march april may june july august september sept october november december sunday monday tuesday tues wednesday wednes thursday thur thurs friday saturday                                                                                                                                                                                                                                             	 	
+	-0			H                '5@.6 	
+N)@*!8"#9(/;AB=0$%+&1<,2-3:47>?DEFHIJGKLMQROPêêêêêêêêêêêêê÷êêêëêüêêêê(êêêêêêêêêêê êêêêê*/û1êêêêê0êê+23ê,.-4êêêêêêêê89ê:<=>ıêêêê;?ê@êê             ÿC                  5 36"4 12
+	+ 0 !   - ($ .*   #7   &%/, )8      7   '                                  !!"""#$$%%%%%&&'''())        	
+     stringToParse baseYear baseMonth baseDay        Unknown status returned from date parser. Please report this error as a bug in Tcl.     more than one time of day in string     more than one time zone in string       more than one weekday in string more than one ordinal month in string                         Äÿÿÿÿÿÿÿ              ˆÿÿÿÿÿÿÿ              Lÿÿÿÿÿÿÿ              ÿÿÿÿÿÿÿ              Ôşÿÿÿÿÿÿ              ˜şÿÿÿÿÿÿ              \şÿÿÿÿÿÿ               şÿÿÿÿÿÿ              äıÿÿÿÿÿÿ              ¨ıÿÿÿÿÿÿ              lıÿÿÿÿÿÿ              0ıÿÿÿÿÿÿ              <                     x                     ´                     ğ                     ,                    h                    ¤                    à                                        X                    ”                    Ğ                                                                                                                                                                                                                      <                     x                     Ò                     Ò                     Ò                     ğ                     ğ                     ,                    ,                    h                    h                    ¤                    ¤                    à                    à                                                            X                    X                    X                    X                    ”                    Ğ                    Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              Äÿÿÿÿÿÿÿ              ˆÿÿÿÿÿÿÿ              Lÿÿÿÿÿÿÿ              .ÿÿÿÿÿÿÿ              ÿÿÿÿÿÿÿ              Ôşÿÿÿÿÿÿ              ¶şÿÿÿÿÿÿ              ˜şÿÿÿÿÿÿ              \şÿÿÿÿÿÿ              \şÿÿÿÿÿÿ              >şÿÿÿÿÿÿ               şÿÿÿÿÿÿ              äıÿÿÿÿÿÿ              äıÿÿÿÿÿÿ              äıÿÿÿÿÿÿ              äıÿÿÿÿÿÿ              Æıÿÿÿÿÿÿ              Æıÿÿÿÿÿÿ              ¨ıÿÿÿÿÿÿ              ¨ıÿÿÿÿÿÿ              ¨ıÿÿÿÿÿÿ              0ıÿÿÿÿÿÿ              0ıÿÿÿÿÿÿ              0ıÿÿÿÿÿÿ              0ıÿÿÿÿÿÿ                                                                                 ÿÿÿÿÿÿÿÿ                              
+                            ÿÿÿÿÿÿÿÿ        
+                                                                                      	                                                                                                                                                                               
+                    
+      <               
+      <               
+                     
+                                                                                                                                                                                                                                                   	                     	                     
+                                                                                                                                                                                                                                                                                                                  GCC: (Ubuntu 4.8.4-2ubuntu1~14.04.3) 4.8.4            zR x  8          ı    BEŒI †D(ƒG0µ
+(A ABBJ L   X       o   BEB B(ŒA0†C8ƒGÀ*î
+8A0A(B BBBB   P   ¨       Ñ   BBŒA †D(ƒJh
+(C ABBE}
+(H ABBF        .symtab .strtab .shstrtab .rela.text .data .bss .rodata.str1.1 .rela.rodata .rodata.str1.8 .rela.data.rel.local .comment .note.GNU-stack .rela.eh_frame                                                                                              @       A                                                   8@                                 &                                                          ,                                                          1      2                     ³                            E                     @                                    @                      8L      ø                          M      2               X#                                  a                     €$                                    \                      0Q      `         	                 q      0               ˜1      ,                             z                      Ä1                                                          È1      ø                              Š                      ]      H                                                 À2      ™                                                    à7               +                 	                      ø=      @                                                         ñÿ                                                                                                                     ı                   S       &                  2     à       P       :            S       C     €      9                             H                  P     À      9       U                   _     @      P       g    	 À
+      X      u    	 €             ƒ    	  	                	 €            ™    	         p                                 	                                                             §                      ¬                     ±                     ¶                     »                     À      +               Å                     Ê                     Ï                      Ô      <               Ù      0               ß      =               å      ˆ               ë      °               ñ      Ø               ÷      ø                                     ı                                           #                     1                     D                     O          o      \                     f                     m                     v                     „                     “                     ¤                     ¬                     ³   p      Ñ      É                     Ú                     è                     ú                                                               '                      tclDate.c TclDateerror.isra.1 yypact yytranslate yycheck yydefact yyr2 yypgoto yyr1 yydefgoto yytable MonthDayTable TimezoneTable UnitsTable OtherTable MilitaryTable .LC0 .LC1 .LC2 .LC3 .LC6 .LC7 .LC4 .LC5 .LC8 .LC9 .LC10 .LC11 .LC12 .LC13 .LC14 .LC15 _GLOBAL_OFFSET_TABLE_ Tcl_AppendToObj Tcl_NewIntObj Tcl_AppendObjToObj TclFreeObj TclDateparse Tcl_Alloc memcpy Tcl_Free __ctype_b_loc Tcl_UtfToLower __stack_chk_fail strncmp strcmp TclClockOldscanObjCmd Tcl_WrongNumArgs Tcl_GetString Tcl_GetIntFromObj Tcl_NewObj Tcl_NewStringObj Tcl_SetObjResult Tcl_ListObjAppendElement #          ,   üÿÿÿÿÿÿÿ3          ,   üÿÿÿÿÿÿÿ=             üÿÿÿÿÿÿÿG          ,   üÿÿÿÿÿÿÿP          -   üÿÿÿÿÿÿÿa          .   üÿÿÿÿÿÿÿx             üÿÿÿÿÿÿÿ‚          ,   üÿÿÿÿÿÿÿ‹          -   üÿÿÿÿÿÿÿœ          .   üÿÿÿÿÿÿÿ³             üÿÿÿÿÿÿÿ½          ,   üÿÿÿÿÿÿÿÄ             üÿÿÿÿÿÿÿä          /   üÿÿÿÿÿÿÿô          /   üÿÿÿÿÿÿÿ1         1   üÿÿÿÿÿÿÿZ         2   üÿÿÿÿÿÿÿ         2   üÿÿÿÿÿÿÿ¨         2   üÿÿÿÿÿÿÿÉ         3   üÿÿÿÿÿÿÿ            œ      J            ü      ^            Ü       u                  ‰            |      Õ            üÿÿÿÿÿÿÿb            Œ                  ¼      š            Ü       °            ü      Ë            <      e            Ü       t            <      à         3   üÿÿÿÿÿÿÿ]            üÿÿÿÿÿÿÿÀ         4   üÿÿÿÿÿÿÿÁ            <                  üÿÿÿÿÿÿÿ3         5   üÿÿÿÿÿÿÿ[             üÿÿÿÿÿÿÿÓ             üÿÿÿÿÿÿÿè         !   üÿÿÿÿÿÿÿ1         6   üÿÿÿÿÿÿÿ¨            ¼
+      ¸            ¼
+      è         7   üÿÿÿÿÿÿÿ         8   üÿÿÿÿÿÿÿW            |      c            |               8   üÿÿÿÿÿÿÿ°            œ	      ¼            œ	      â         8   üÿÿÿÿÿÿÿj            |      q            |      ”         8   üÿÿÿÿÿÿÿç            üÿÿÿÿÿÿÿî            üÿÿÿÿÿÿÿ         8   üÿÿÿÿÿÿÿm            |      y            |      ’         8   üÿÿÿÿÿÿÿ            œ	      :         8   üÿÿÿÿÿÿÿ‹         "   üÿÿÿÿÿÿÿ          :   üÿÿÿÿÿÿÿ½         ;   üÿÿÿÿÿÿÿæ         <   üÿÿÿÿÿÿÿ         <   üÿÿÿÿÿÿÿ*         <   üÿÿÿÿÿÿÿ         =   üÿÿÿÿÿÿÿ         #   üÿÿÿÿÿÿÿ$         0   üÿÿÿÿÿÿÿD         $   üÿÿÿÿÿÿÿo         %   üÿÿÿÿÿÿÿ‚         &   üÿÿÿÿÿÿÿ•         '   üÿÿÿÿÿÿÿ«         (   üÿÿÿÿÿÿÿÂ         )   üÿÿÿÿÿÿÿÑ         >   üÿÿÿÿÿÿÿÜ         ?   üÿÿÿÿÿÿÿè            üÿÿÿÿÿÿÿò         >   üÿÿÿÿÿÿÿı         ?   üÿÿÿÿÿÿÿ         /   üÿÿÿÿÿÿÿ(         ?   üÿÿÿÿÿÿÿA         /   üÿÿÿÿÿÿÿQ         /   üÿÿÿÿÿÿÿa         =   üÿÿÿÿÿÿÿi         =   üÿÿÿÿÿÿÿ…         @   üÿÿÿÿÿÿÿï         -   üÿÿÿÿÿÿÿı         @   üÿÿÿÿÿÿÿ         =   üÿÿÿÿÿÿÿ         @   üÿÿÿÿÿÿÿ#         =   üÿÿÿÿÿÿÿB         @   üÿÿÿÿÿÿÿG         =   üÿÿÿÿÿÿÿg         -   üÿÿÿÿÿÿÿu         @   üÿÿÿÿÿÿÿ         -   üÿÿÿÿÿÿÿ         @   üÿÿÿÿÿÿÿ         @   üÿÿÿÿÿÿÿ¢         =   üÿÿÿÿÿÿÿÁ         @   üÿÿÿÿÿÿÿÌ         ?   üÿÿÿÿÿÿÿÖ         =   üÿÿÿÿÿÿÿä         @   üÿÿÿÿÿÿÿò         -   üÿÿÿÿÿÿÿ          @   üÿÿÿÿÿÿÿ	         -   üÿÿÿÿÿÿÿ         @   üÿÿÿÿÿÿÿ#         -   üÿÿÿÿÿÿÿ1         @   üÿÿÿÿÿÿÿA         -   üÿÿÿÿÿÿÿO         @   üÿÿÿÿÿÿÿ]         -   üÿÿÿÿÿÿÿk         @   üÿÿÿÿÿÿÿÆ         -   üÿÿÿÿÿÿÿÔ         @   üÿÿÿÿÿÿÿİ         -   üÿÿÿÿÿÿÿë         @   üÿÿÿÿÿÿÿô         -   üÿÿÿÿÿÿÿ         @   üÿÿÿÿÿÿÿ         -   üÿÿÿÿÿÿÿ!         @   üÿÿÿÿÿÿÿ*         -   üÿÿÿÿÿÿÿ8         @   üÿÿÿÿÿÿÿ              O                   H            

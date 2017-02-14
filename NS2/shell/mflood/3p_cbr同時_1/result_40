@@ -1,0 +1,80 @@
+node = 40	seed = 1 
+=====================================================================
+send: 607   receive:  389	
+r/s Ratio:	0.6409
+delay:	0.037
+delay time:	14.490
+hop count:	1.568
+IFQ drop:	0
+node = 40	seed = 2 
+=====================================================================
+send: 596   receive:  244	
+r/s Ratio:	0.4094
+delay:	0.090
+delay time:	21.890
+hop count:	3.799
+IFQ drop:	0
+node = 40	seed = 3 
+=====================================================================
+send: 597   receive:  269	
+r/s Ratio:	0.4506
+delay:	0.068
+delay time:	18.182
+hop count:	2.833
+IFQ drop:	0
+node = 40	seed = 4 
+=====================================================================
+send: 602   receive:  277	
+r/s Ratio:	0.4601
+delay:	0.051
+delay time:	14.045
+hop count:	1.928
+IFQ drop:	0
+node = 40	seed = 5 
+=====================================================================
+send: 608   receive:  432	
+r/s Ratio:	0.7105
+delay:	0.042
+delay time:	18.157
+hop count:	1.438
+IFQ drop:	0
+node = 40	seed = 6 
+=====================================================================
+send: 607   receive:  358	
+r/s Ratio:	0.5898
+delay:	0.022
+delay time:	7.866
+hop count:	0.877
+IFQ drop:	0
+node = 40	seed = 7 
+=====================================================================
+send: 600   receive:  458	
+r/s Ratio:	0.7633
+delay:	0.050
+delay time:	22.936
+hop count:	1.688
+IFQ drop:	0
+node = 40	seed = 8 
+=====================================================================
+send: 605   receive:  439	
+r/s Ratio:	0.7256
+delay:	0.034
+delay time:	14.941
+hop count:	1.189
+IFQ drop:	0
+node = 40	seed = 9 
+=====================================================================
+send: 600   receive:  279	
+r/s Ratio:	0.4650
+delay:	0.068
+delay time:	18.992
+hop count:	3.172
+IFQ drop:	0
+node = 40	seed = 10 
+=====================================================================
+send: 609   receive:  291	
+r/s Ratio:	0.4778
+delay:	0.083
+delay time:	24.171
+hop count:	3.722
+IFQ drop:	0

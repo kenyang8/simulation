@@ -1,0 +1,65 @@
+=============================================
+node = 200	
+R & S:		19 20
+Delivery ratio:		0.95
+Delay_des:		0.202526
+hop_des count:		4.84211
+Delay for all nodes:	0.114737
+hop_all count:		3.37263
+Coverage:		1.04816
+---------------------------------------
+IFQ drop:		0
+Total forward:		96.1
+Total nodes:		202
+=============================================
+node = 250	
+R & S:		18 20
+Delivery ratio:		0.9
+Delay_des:		0.234278
+hop_des count:		5.55556
+Delay for all nodes:	0.122889
+hop_all count:		3.61844
+Coverage:		1.10956
+---------------------------------------
+IFQ drop:		0
+Total forward:		112.05
+Total nodes:		252
+=============================================
+node = 300	
+R & S:		18 20
+Delivery ratio:		0.9
+Delay_des:		0.248944
+hop_des count:		5.55556
+Delay for all nodes:	0.126944
+hop_all count:		3.61072
+Coverage:		1.10817
+---------------------------------------
+IFQ drop:		0
+Total forward:		137.3
+Total nodes:		302
+=============================================
+node = 350	
+R & S:		19 20
+Delivery ratio:		0.95
+Delay_des:		0.208789
+hop_des count:		5
+Delay for all nodes:	0.115316
+hop_all count:		3.59411
+Coverage:		1.05216
+---------------------------------------
+IFQ drop:		0
+Total forward:		158.3
+Total nodes:		352
+=============================================
+node = 400	
+R & S:		20 20
+Delivery ratio:		1
+Delay_des:		0.2225
+hop_des count:		5.55
+Delay for all nodes:	0.1166
+hop_all count:		3.3439
+Coverage:		0.99965
+---------------------------------------
+IFQ drop:		0
+Total forward:		194.5
+Total nodes:		402

@@ -1,0 +1,173 @@
+2-26  Andreas Kupries  <andreask@activestate.com>
+
+	* generic/tclIORChan.c (FreeReflectedChannel): Added the missing
+	refcount release between NewRC and FreeRC for the channel handle
+	object, spotted by Don Porter. [Bug 1667990]
+
+2007-02-26  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdAH.c (Tcl_ForeachObjCmd):	Removed surplus
+	copying of the objv array that used to be a workaround for [Bug
+	404865]. That bug is long fixed.
+
+2007-02-24  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclBasic.c:	Use new interface in Tcl_EvalObjEx so that the
+	recounting logic of the List internal rep need not be repeated there.
+	Better encapsulation of internal details.
+
+	* generic/tclInt.h:	New internal routine TclListObjCopy() used
+	* generic/tclListObj.c: to efficiently do the equivalent of [lrange
+	$list 0 end]. After some experience with this, might be a good
+	candidate for exposure as a public interface. It's useful for callers
+	of Tcl_ListObjGetElements() who want to control the ongoing validity
+	of the returned objv pointer.
+
+2007-02-22  Andreas Kupries  <andreask@activestate.com>
+
+	* tests/pkg.test: Added tests for the case of an alpha package
+	satisfying a require for the regular package, demonstrating a corner
+	case specified in TIP#280. More notes in the comments to the test.
+
+2007-02-20  Jan Nijtmans  <nijtmans@users.sf.net>
+
+	* generic/tclInt.decls: Added "const" specifiers in TclSockGetPort
+	* generic/tclIntDecls.h: regenerated
+	* generic/*.c:
+	* unix/tclUnixChan.c
+	* unix/tclUnixPipe.c
+	* win/tclWinPipe.c
+	* win/tclWinSock.c: Added many "const" specifiers in implementation.
+
+2007-02-20  Don Porter	<dgp@users.sourceforge.net>
+
+	* doc/tcltest.n:	Typo fix. [Bug 1663539]
+
+2007-02-20  Pat Thoyts	<patthoyts@users.sourceforge.net>
+
+	* generic/tclFileName.c:  Handle extended paths on Windows NT and
+	* generic/tclPathObj.c:	  above. These have a \\?\ prefix. [Bug
+	* win/tclWinFile.c:	  1479814]
+	* tests/winFCmd.test:	  Tests for extended path handling.
+
+2007-02-19  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* unix/tcl.m4: use SHLIB_SUFFIX=".so" on HP-UX ia64 arch.
+	* unix/configure: autoconf-2.59
+
+	* generic/tclIOUtil.c (Tcl_FSEvalFileEx): safe incr of objPtr ref.
+
+2007-02-18  Donal K. Fellows  <dkf@users.sf.net>
+
+	* doc/chan.n, doc/clock.n, doc/eval.n, doc/exit.n, doc/expr.n:
+	* doc/interp.n, doc/open.n, doc/platform_shell.n, doc/pwd.n:
+	* doc/refchan.n, doc/regsub.n, doc/scan.n, doc/tclvars.n, doc/tm.n:
+	* doc/unload.n: Apply [Bug 1610310] to fix typos. Thanks to Larry
+	Virden for spotting them.
+
+	* doc/interp.n: Partial fix of [Bug 1662436]; rest requires some
+	policy decisions on what should and shouldn't be safe commands from
+	the "new in 8.5" set.
+
+2007-02-13  Kevin B. Kenny  <kennykb@acm.org>
+
+	* tools/fix_tommath_h.tcl: Further tweaking for the x86-64. The change
+	is to make 'mp_digit' be an 'unsigned int' on that platform; since
+	we're using only 32 bits of it, there's no reason to make it a 64-bit
+	'unsigned long.'
+	* generic/tclTomMath.h: Regenerated.
+
+2007-02-13  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* doc/re_syntax.n: Corrected description of 'print' class [Bug
+	1614687] and enhanced description of 'graph' class.
+
+2007-02-12  Kevin B. Kenny  <kennykb@acm.org>
+
+	* tools/fix_tommath_h.tcl: Added code to patch out a check for
+	__x86_64__ that caused Tommath to use __attributes(TI)__ for the
+	mp_word type. Tetra-int's simply fail on too many gcc-glibc-OS
+	combinations to be ready for shipment today, even if they work for
+	some of us. This change allows reversion of das's change of 2006-08-18
+	that accomplised the same thing on Darwin. [Bugs 1601380, 1603737,
+	1609936, 1656265]
+	* generic/tclTomMath.h: Regenerated.
+	* library/tzdata/Africa/Asmara:
+	* library/tzdata/Africa/Asmera:
+	* library/tzdata/America/Nassau:
+	* library/tzdata/Atlantic/Faeroe:
+	* library/tzdata/Atlantic/Faroe:
+	* library/tzdata/Australia/Eucla:
+	* library/tzdata/Pacific/Easter: Rebuilt from Olson's tzdata2007b.
+
+2007-02-09  Joe Mistachkin  <joe@mistachkin.com>
+
+	* win/nmakehlp.c: Properly cleanup after nmakehlp, including the
+	* win/makefile.vc: vcX0.pch file.
+
+2007-02-08  Jeff Hobbs	<jeffh@ActiveState.com>
+
+	* unix/tclUnixInit.c (TclpCheckStackSpace): do stack size checks with
+	unsigned size_t to correctly validate stackSize in the 2^31+ range.
+	[Bug 1654104]
+
+2007-02-08  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclNamesp.c:	Corrected broken logic in Tcl_DeleteNamespace
+	* tests/namespace.test: introduced in Patch 1577278 that caused
+	[namespace delete ::] to be effective only at level #0. New test
+	namespace-7.7 should prevent similar error in the future [Bug 1655305]
+
+2007-02-06  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclNamesp.c:	Corrected broken implementation of the
+	* tests/namespace.test: TclMatchIsTrivial optimization on [namespace
+	children $namespace $pattern].
+
+2007-02-04  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/tcl.m4: use gcc4's __attribute__((__visibility__("hidden"))) if
+	available to define MODULE_SCOPE effective on all platforms.
+	* unix/configure.in: add caching to -pipe and zoneinfo checks.
+	* unix/configure: autoconf-2.59
+	* unix/tclConfig.h.in: autoheader-2.59
+
+2007-02-03  Joe Mistachkin  <joe@mistachkin.com>
+
+	* win/rules.vc: Fix platform specific file copy macros for downlevel
+	Windows.
+
+2007-01-29  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclResult.c: Added optimization case to TclTransferResult to
+	cover common case where there's big savings over the fully general
+	path. Thanks to Peter MacDonald. [Bug 1626518]
+
+	* generic/tclLink.c:	Broken linked float logic corrected. Thanks to
+	Andy Goth. [Bug 1602538]
+
+	* doc/fcopy.n:	Typo fix. [Bug 1630627]
+
+2007-01-28  Daniel Steffen  <das@users.sourceforge.net>
+
+	* macosx/Tcl.xcodeproj/project.pbxproj:	  extract build settings that
+	* macosx/Tcl.xcodeproj/default.pbxuser:	  were common to multiple
+	* macosx/Tcl-Common.xcconfig (new file):  configurations into external
+	* macosx/Tcl-Debug.xcconfig (new file):	  xcconfig files; add extra
+	* macosx/Tcl-Release.xcconfig (new file): configurations for building
+	with SDKs and 64bit; convert legacy jam-based 'Tcl' target to native
+	target with single script phase; correct syntax of build setting
+	references to use $() throughout.
+
+	* macosx/README: document new Tcl.xcodeproj configurations; other
+	minor updates/corrections.
+
+	* generic/tcl.h: update location of version numbers in macosx files.
+
+	* macosx/Tcl.xcode/project.pbxproj: restore 'tcltest' target to
+	* macosx/Tcl.xcode/default.pbxuser: working order by replicating
+	applicable changes to Tcl.xcodeproj since 2006-07-20.
+
+2007-01-25  Daniel Steffen  <das@users.sourceforge.net>
+
+	* unix/tcl.m4: integrate CPPFLAGS into CFLAGS as late as possibl

@@ -1,0 +1,80 @@
+node = 40	seed = 1 
+=====================================================================
+send: 196   receive:  126	
+r/s Ratio:	0.6429
+delay:	0.040
+delay time:	5.054
+hop count:	1.810
+IFQ drop:	0
+node = 40	seed = 2 
+=====================================================================
+send: 215   receive:  137	
+r/s Ratio:	0.6372
+delay:	0.060
+delay time:	8.247
+hop count:	2.511
+IFQ drop:	0
+node = 40	seed = 3 
+=====================================================================
+send: 200   receive:  119	
+r/s Ratio:	0.5950
+delay:	0.069
+delay time:	8.270
+hop count:	3.008
+IFQ drop:	0
+node = 40	seed = 4 
+=====================================================================
+send: 205   receive:  114	
+r/s Ratio:	0.5561
+delay:	0.060
+delay time:	6.876
+hop count:	2.368
+IFQ drop:	0
+node = 40	seed = 5 
+=====================================================================
+send: 203   receive:  124	
+r/s Ratio:	0.6108
+delay:	0.046
+delay time:	5.747
+hop count:	1.960
+IFQ drop:	0
+node = 40	seed = 6 
+=====================================================================
+send: 201   receive:  130	
+r/s Ratio:	0.6468
+delay:	0.044
+delay time:	5.709
+hop count:	1.923
+IFQ drop:	0
+node = 40	seed = 7 
+=====================================================================
+send: 201   receive:  138	
+r/s Ratio:	0.6866
+delay:	0.033
+delay time:	4.607
+hop count:	1.225
+IFQ drop:	0
+node = 40	seed = 8 
+=====================================================================
+send: 209   receive:  143	
+r/s Ratio:	0.6842
+delay:	0.074
+delay time:	10.531
+hop count:	3.063
+IFQ drop:	0
+node = 40	seed = 9 
+=====================================================================
+send: 199   receive:  114	
+r/s Ratio:	0.5729
+delay:	0.042
+delay time:	4.773
+hop count:	1.886
+IFQ drop:	0
+node = 40	seed = 10 
+=====================================================================
+send: 204   receive:  131	
+r/s Ratio:	0.6422
+delay:	0.053
+delay time:	6.965
+hop count:	2.366
+IFQ drop:	0

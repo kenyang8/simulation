@@ -1,0 +1,189 @@
+e tests.
+
+2007-03-12  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclExecute.c (INST_FOREACH_STEP4):	Make private copy of
+	* tests/foreach.test (foreach-10.1):	value list to be assigned to
+	variables so that shimmering of that list doesn't lead to invalid
+	pointers. [Bug 1671087]
+
+	* generic/tclEvent.c (HandleBgErrors):	Make efficient private copy
+	* tests/event.test (event-5.3): of the command prefix for the interp's
+	background error handling command to avoid panics due to pointers to
+	memory invalid after shimmering. [Bug 1670155]
+
+	* generic/tclNamesp.c (NsEnsembleImplementationCmd):	Make efficient
+	* tests/namespace.test (namespace-42.8):	private copy of the
+	command prefix as we invoke the command appropriate to a particular
+	subcommand of a particular ensemble to avoid panic due to shimmering
+	of the List intrep. [Bug 1670091]
+
+	* generic/tclVar.c (TclArraySet):	Make efficient private copy of
+	* tests/var.test (var-17.1):	the "list" argument to [array set] to
+	avoid crash due to shimmering invalidating pointers. [Bug 1669489]
+
+2007-03-12  Donal K. Fellows  <donal.k.fellows@manchester.ac.uk>
+
+	* generic/tclCmdIL.c (Tcl_LsortObjCmd): Fix problems with declaration
+	positioning and memory leaks. [Bug 1679072]
+
+2007-03-11  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclCmdIL.c (Tcl_LreverseObjCmd): Ensure that a list is
+	correctly reversed even if its internal representation is shared
+	without the object itself being shared. [Bug 1675044]
+
+2007-03-10  Miguel Sofer  <msofer@users.sf.net>
+
+	* generic/tclCmdIL (Tcl_LsortObjCmd): changed fix to [Bug 1675116] to
+	use the cheaper TclListObjCopy() instead of Tcl_DuplicateObj().
+
+2007-03-09  Andreas Kupries  <andreask@activestate.com>
+
+	* library/platform/shell.tcl: Made more robust if an older platform
+	* library/platform/pkgIndex.tcl: package is present in the inspected
+	* unix/Makefile.in: shell. Package forget it to prevent errors. Bumped
+	* win/Makefile.in: package version to 1.1.3, and updated the Makefiles
+	installing it as Tcl Module.
+
+2007-03-09  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclCmdIL.c (Tcl_LsortObjCmd): Handle tricky case with loss
+	* tests/cmdIL.test (cmdIL-1.29):	of list rep during sorting due
+	to shimmering. [Bug 1675116]
+
+2007-03-09  Kevin B. Kenny  <kennykb@acm.org>
+
+	* library/clock.tcl (ReadZoneinfoFile): Added Y2038 compliance to the
+	code for version-2 'zoneinfo' files.
+	* tests/clock.test (clock-56.3): Added a test case for Y2038 and
+	'zoneinfo'. Modified test initialisation to use the
+	'loadTestedCommands' function of tcltest to bring in the correct path
+	for the registry library.
+
+2007-03-08  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclListObj.c (TclLsetList):	Rewrite so that the routine
+	itself does not do any direct intrep surgery. Better isolates those
+	things into the implementation of the "list" Tcl_ObjType.
+
+2007-03-08  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclListObj.c (TclLindexList, TclLindexFlat): Moved these
+	functions to tclListObj.c from tclCmdIL.c to mirror the way that the
+	equivalent functions for [lset]'s guts are arranged.
+
+2007-03-08  Kevin B. Kenny  <kennykb@acm.org>
+
+	* library/clock.tcl: Further tweaks to the Windows time zone table
+	(restoring missing Mexican time zones). Added rudimentary handling of
+	version-2 'zoneinfo' files. Update US DST rules so that zones such as
+	'EST5EDT' get the correct transition dates.
+	* tests/clock.test: Added rudimentary test cases for 'zoneinfo'
+	parsing. Adjusted several tests that depended on obsolete US DST
+	transition rules.
+
+2007-03-07  Daniel Steffen  <das@users.sourceforge.net>
+
+	* macosx/tclMacOSXNotify.c: add spinlock debugging and sanity checks.
+
+	* macosx/Tcl.xcodeproj/project.pbxproj: ensure gcc version used by
+	* macosx/Tcl.xcodeproj/default.pbxuser: Xcode and configure/make are
+	* macosx/Tcl-Common.xcconfig:		consistent and independent of
+	gcc_select default and CC env var; fixes for Xcode 3.0.
+
+	* unix/tcl.m4 (Darwin): s/CFLAGS/CPPFLAGS/ in macosx-version-min check
+	* unix/configure: autoconf-2.59
+
+2007-03-07  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdIL.c (TclLindex*):	Rewrites to make efficient
+	private copies of the list and indexlist arguments, so we can operate
+	on the list elements directly with no fear of shimmering effects.
+	Replaces defensive coding schemes that are otherwise required. End
+	result is that TclLindexList is entirely a wrapper around
+	TclLindexFlat, which is now the core engine of all [lindex]
+	operations.
+
+	* generic/tclObj.c (Tcl_AppendAllObjTypes):	Converted to simpler
+	list validity test.
+
+2007-03-07  Donal K. Fellows  <donal.k.fellows@man.ac.uk>
+
+	* generic/tclRegexp.c (TclRegAbout): Generate information about a
+	regexp as a Tcl_Obj instead of as a string, which is more efficient.
+
+2007-03-07  Kevin B. Kenny  <kennykb@acm.org>
+
+	* library/clock.tcl: Adjusted Windows time zone table to handle new US
+	DST rules by locale rather than as Posix time zone spec.
+	* tests/clock.test (clock-39.6, clock-49.2, testclock::registry):
+	Adjusted tests to simulate new US rules.
+	* library/tzdata/America/Indiana/Winamac:
+	* library/tzdata/Europe/Istanbul:
+	* library/tzdata/Pacific/Easter:
+	Olson's tzdata2007c.
+
+2007-03-05  Andreas Kupries  <andreask@activestate.com>
+
+	* library/platform/shell.tcl (::platform::shell::RUN): In the case of
+	* library/platform/pkgIndex.tcl: a failure put the captured stderr
+	* unix/Makefile.in: into the error message to aid in debugging. Bumped
+	* win/Makefile.in: package version to 1.1.2, and updated the makefiles
+	installing it as Tcl Module.
+
+2007-03-03  Donal K. Fellows  <dkf@users.sf.net>
+
+	* generic/tclLink.c (LinkedVar): Added macro to conceal at least some
+	of the pointer hackery.
+
+2007-03-02  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdIL.c (Tcl_LreverseObjCmd):	Added missing
+	TclInvalidateStringRep() call when we directly manipulate the intrep
+	of an unshared "list" Tcl_Obj. [Bug 1672585]
+
+	* generic/tclCmdIL.c (Tcl_JoinObjCmd):	Revised [join] implementation
+	to append Tcl_Obj's instead of strings. [RFE 1669420]
+
+	* generic/tclCmdIL.c (Info*Cmd):	Code simplifications and
+	optimizations.
+
+2007-03-02  Donal K. Fellows  <donal.k.fellows@manchester.ac.uk>
+
+	* generic/tclCompile.c (TclPrintInstruction): Added a scheme to allow
+	* generic/tclCompile.h (AuxDataPrintProc):    aux-data to be printed
+	* generic/tclCompCmds.c (Print*Info):	      out for debugging. For
+	this to work, immediate operands referring to aux-data must be
+	identified as such in the instruction descriptor table using
+	OPERAND_AUX4 (all are always 4 bytes).
+
+	* generic/tclExecute.c (TclExecuteByteCode): Rewrote the compiled
+	* generic/tclCompCmds.c (TclCompileDictCmd): [dict update] so that it
+	* generic/tclCompile.h (DictUpdateInfo):     stores critical
+	* tests/dict.test (dict-21.{14,15}):	     non-varying data in an
+	aux-data value instead of a (shimmerable) literal. [Bug 1671001]
+
+2007-03-01  Don Porter	<dgp@users.sourceforge.net>
+
+	* generic/tclCmdIL.c (Tcl_LinsertObjCmd):	Code simplifications
+	and optimizations.
+
+	* generic/tclCmdIL.c (Tcl_LreplaceObjCmd):	Code simplifications
+	and optimizations.
+
+	* generic/tclCmdIL.c (Tcl_LrangeObjCmd):	Rewrite in the same
+	spirit; avoid shimmer effects rather than react to them.
+
+	* generic/tclCmdAH.c (Tcl_ForeachObjCmd):	Stop throwing away
+	* tests/foreach.test (foreach-1.14):	useful error information when
+	loop variable sets fail.
+
+	* generic/tclCmdIL.c (Tcl_LassignObjCmd):	Rewrite to make an
+	efficient private copy of the list argument, so we can operate on the
+	list elements directly with no fear of shimmering effects. Replaces
+	defensive coding schemes that are otherwise required.
+
+	* generic/tclCmdAH.c (Tcl_ForeachObjCmd):	Rewrite to make
+	efficient private copies of the variable and value lists, so we can
+	operate on them without any special shimmer defense coding schemes.

@@ -1,0 +1,80 @@
+speed = 10	seed = 1 
+=====================================================================
+send: 1209   receive:  872	
+r/s Ratio:	0.7213
+delay:	0.099
+delay time:	86.321
+hop count:	2.998
+IFQ drop:	0
+speed = 10	seed = 2 
+=====================================================================
+send: 1210   receive:  796	
+r/s Ratio:	0.6579
+delay:	0.112
+delay time:	88.868
+hop count:	3.153
+IFQ drop:	0
+speed = 10	seed = 3 
+=====================================================================
+send: 1190   receive:  906	
+r/s Ratio:	0.7613
+delay:	0.076
+delay time:	68.412
+hop count:	2.162
+IFQ drop:	0
+speed = 10	seed = 4 
+=====================================================================
+send: 1206   receive:  902	
+r/s Ratio:	0.7479
+delay:	0.066
+delay time:	59.501
+hop count:	1.806
+IFQ drop:	0
+speed = 10	seed = 5 
+=====================================================================
+send: 1179   receive:  756	
+r/s Ratio:	0.6412
+delay:	0.096
+delay time:	72.560
+hop count:	3.237
+IFQ drop:	0
+speed = 10	seed = 6 
+=====================================================================
+send: 1188   receive:  718	
+r/s Ratio:	0.6044
+delay:	0.080
+delay time:	57.380
+hop count:	2.918
+IFQ drop:	0
+speed = 10	seed = 7 
+=====================================================================
+send: 1189   receive:  735	
+r/s Ratio:	0.6182
+delay:	0.081
+delay time:	59.486
+hop count:	2.046
+IFQ drop:	0
+speed = 10	seed = 8 
+=====================================================================
+send: 1211   receive:  669	
+r/s Ratio:	0.5524
+delay:	0.113
+delay time:	75.580
+hop count:	3.453
+IFQ drop:	0
+speed = 10	seed = 9 
+=====================================================================
+send: 1200   receive:  755	
+r/s Ratio:	0.6292
+delay:	0.069
+delay time:	51.776
+hop count:	1.796
+IFQ drop:	0
+speed = 10	seed = 10 
+=====================================================================
+send: 1200   receive:  933	
+r/s Ratio:	0.7775
+delay:	0.119
+delay time:	111.442
+hop count:	4.250
+IFQ drop:	0

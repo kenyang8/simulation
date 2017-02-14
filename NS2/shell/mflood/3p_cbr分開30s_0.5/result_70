@@ -1,0 +1,80 @@
+node = 70	seed = 1 
+=====================================================================
+send: 1211   receive:  953	
+r/s Ratio:	0.7870
+delay:	0.104
+delay time:	98.799
+hop count:	2.859
+IFQ drop:	0
+node = 70	seed = 2 
+=====================================================================
+send: 1193   receive:  996	
+r/s Ratio:	0.8349
+delay:	0.123
+delay time:	122.429
+hop count:	3.233
+IFQ drop:	0
+node = 70	seed = 3 
+=====================================================================
+send: 1187   receive:  1015	
+r/s Ratio:	0.8551
+delay:	0.136
+delay time:	138.517
+hop count:	3.151
+IFQ drop:	0
+node = 70	seed = 4 
+=====================================================================
+send: 1198   receive:  936	
+r/s Ratio:	0.7813
+delay:	0.105
+delay time:	98.620
+hop count:	2.708
+IFQ drop:	0
+node = 70	seed = 5 
+=====================================================================
+send: 1212   receive:  869	
+r/s Ratio:	0.7170
+delay:	0.098
+delay time:	85.298
+hop count:	2.795
+IFQ drop:	0
+node = 70	seed = 6 
+=====================================================================
+send: 1200   receive:  754	
+r/s Ratio:	0.6283
+delay:	0.097
+delay time:	73.017
+hop count:	3.328
+IFQ drop:	0
+node = 70	seed = 7 
+=====================================================================
+send: 1182   receive:  1007	
+r/s Ratio:	0.8519
+delay:	0.086
+delay time:	86.259
+hop count:	2.134
+IFQ drop:	0
+node = 70	seed = 8 
+=====================================================================
+send: 1216   receive:  980	
+r/s Ratio:	0.8059
+delay:	0.129
+delay time:	126.193
+hop count:	2.901
+IFQ drop:	0
+node = 70	seed = 9 
+=====================================================================
+send: 1228   receive:  1071	
+r/s Ratio:	0.8721
+delay:	0.116
+delay time:	124.246
+hop count:	3.197
+IFQ drop:	0
+node = 70	seed = 10 
+=====================================================================
+send: 1226   receive:  1069	
+r/s Ratio:	0.8719
+delay:	0.135
+delay time:	143.901
+hop count:	3.388
+IFQ drop:	0

@@ -1,0 +1,297 @@
+/*
+ * tclUnixFile.c --
+ *
+ *	This file contains wrappers around UNIX file handling functions.
+ *	These wrappers mask differences between Windows and UNIX.
+ *
+ * Copyright (c) 1995-1998 Sun Microsystems, Inc.
+ *
+ * See the file "license.terms" for information on usage and redistribution of
+ * this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ */
+
+#include "tclInt.h"
+#include "tclFileSystem.h"
+
+static int NativeMatchType(Tcl_Interp *interp, CONST char* nativeEntry,
+	CONST char* nativeName, Tcl_GlobTypeData *types);
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * TclpFindExecutable --
+ *
+ *	This function computes the absolute path name of the current
+ *	application, given its argv[0] value.
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	The computed path name is stored as a ProcessGlobalValue.
+ *
+ *---------------------------------------------------------------------------
+ */
+
+void
+TclpFindExecutable(
+    CONST char *argv0)		/* The value of the application's argv[0]
+				 * (native). */
+{
+    CONST char *name, *p;
+    Tcl_StatBuf statBuf;
+    Tcl_DString buffer, nameString, cwd, utfName;
+    Tcl_Encoding encoding;
+
+    if (argv0 == NULL) {
+	return;
+    }
+    Tcl_DStringInit(&buffer);
+
+    name = argv0;
+    for (p = name; *p != '\0'; p++) {
+	if (*p == '/') {
+	    /*
+	     * The name contains a slash, so use the name directly without
+	     * doing a path search.
+	     */
+
+	    goto gotName;
+	}
+    }
+
+    p = getenv("PATH");					/* INTL: Native. */
+    if (p == NULL) {
+	/*
+	 * There's no PATH environment variable; use the default that is used
+	 * by sh.
+	 */
+
+	p = ":/bin:/usr/bin";
+    } else if (*p == '\0') {
+	/*
+	 * An empty path is equivalent to ".".
+	 */
+
+	p = "./";
+    }
+
+    /*
+     * Search through all the directories named in the PATH variable to see if
+     * argv[0] is in one of them. If so, use that file name.
+     */
+
+    while (1) {
+	while (TclIsSpaceProc(*p)) {
+	    p++;
+	}
+	name = p;
+	while ((*p != ':') && (*p != 0)) {
+	    p++;
+	}
+	Tcl_DStringSetLength(&buffer, 0);
+	if (p != name) {
+	    Tcl_DStringAppend(&buffer, name, p - name);
+	    if (p[-1] != '/') {
+		Tcl_DStringAppend(&buffer, "/", 1);
+	    }
+	}
+	name = Tcl_DStringAppend(&buffer, argv0, -1);
+
+	/*
+	 * INTL: The following calls to access() and stat() should not be
+	 * converted to Tclp routines because they need to operate on native
+	 * strings directly.
+	 */
+
+	if ((access(name, X_OK) == 0)			/* INTL: Native. */
+		&& (TclOSstat(name, &statBuf) == 0)	/* INTL: Native. */
+		&& S_ISREG(statBuf.st_mode)) {
+	    goto gotName;
+	}
+	if (*p == '\0') {
+	    break;
+	} else if (*(p+1) == 0) {
+	    p = "./";
+	} else {
+	    p++;
+	}
+    }
+    TclSetObjNameOfExecutable(Tcl_NewObj(), NULL);
+    goto done;
+
+    /*
+     * If the name starts with "/" then just store it
+     */
+
+  gotName:
+#ifdef DJGPP
+    if (name[1] == ':')
+#else
+    if (name[0] == '/')
+#endif
+    {
+	encoding = Tcl_GetEncoding(NULL, NULL);
+	Tcl_ExternalToUtfDString(encoding, name, -1, &utfName);
+	TclSetObjNameOfExecutable(
+		Tcl_NewStringObj(Tcl_DStringValue(&utfName), -1), encoding);
+	Tcl_DStringFree(&utfName);
+	goto done;
+    }
+
+    /*
+     * The name is relative to the current working directory. First strip off
+     * a leading "./", if any, then add the full path name of the current
+     * working directory.
+     */
+
+    if ((name[0] == '.') && (name[1] == '/')) {
+	name += 2;
+    }
+
+    Tcl_DStringInit(&nameString);
+    Tcl_DStringAppend(&nameString, name, -1);
+
+    TclpGetCwd(NULL, &cwd);
+
+    Tcl_DStringFree(&buffer);
+    Tcl_UtfToExternalDString(NULL, Tcl_DStringValue(&cwd),
+	    Tcl_DStringLength(&cwd), &buffer);
+    if (Tcl_DStringValue(&cwd)[Tcl_DStringLength(&cwd) -1] != '/') {
+	Tcl_DStringAppend(&buffer, "/", 1);
+    }
+    Tcl_DStringFree(&cwd);
+    Tcl_DStringAppend(&buffer, Tcl_DStringValue(&nameString),
+	    Tcl_DStringLength(&nameString));
+    Tcl_DStringFree(&nameString);
+
+    encoding = Tcl_GetEncoding(NULL, NULL);
+    Tcl_ExternalToUtfDString(encoding, Tcl_DStringValue(&buffer), -1,
+	    &utfName);
+    TclSetObjNameOfExecutable(
+	    Tcl_NewStringObj(Tcl_DStringValue(&utfName), -1), encoding);
+    Tcl_DStringFree(&utfName);
+
+  done:
+    Tcl_DStringFree(&buffer);
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * TclpMatchInDirectory --
+ *
+ *	This routine is used by the globbing code to search a directory for
+ *	all files which match a given pattern.
+ *
+ * Results:
+ *	The return value is a standard Tcl result indicating whether an error
+ *	occurred in globbing. Errors are left in interp, good results are
+ *	[lappend]ed to resultPtr (which must be a valid object).
+ *
+ * Side effects:
+ *	None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+TclpMatchInDirectory(
+    Tcl_Interp *interp,		/* Interpreter to receive errors. */
+    Tcl_Obj *resultPtr,		/* List object to lappend results. */
+    Tcl_Obj *pathPtr,		/* Contains path to directory to search. */
+    CONST char *pattern,	/* Pattern to match against. */
+    Tcl_GlobTypeData *types)	/* Object containing list of acceptable types.
+				 * May be NULL. In particular the directory
+				 * flag is very important. */
+{
+    CONST char *native;
+    Tcl_Obj *fileNamePtr;
+    int matchResult = 0;
+
+    if (types != NULL && types->type == TCL_GLOB_TYPE_MOUNT) {
+	/*
+	 * The native filesystem never adds mounts.
+	 */
+
+	return TCL_OK;
+    }
+
+    fileNamePtr = Tcl_FSGetTranslatedPath(interp, pathPtr);
+    if (fileNamePtr == NULL) {
+	return TCL_ERROR;
+    }
+
+    if (pattern == NULL || (*pattern == '\0')) {
+	/*
+	 * Match a file directly.
+	 */
+	Tcl_Obj *tailPtr;
+	CONST char *nativeTail;
+
+	native = (CONST char*) Tcl_FSGetNativePath(pathPtr);
+	tailPtr = TclPathPart(interp, pathPtr, TCL_PATH_TAIL);
+	nativeTail = (CONST char*) Tcl_FSGetNativePath(tailPtr);
+	matchResult = NativeMatchType(interp, native, nativeTail, types);
+	if (matchResult == 1) {
+	    Tcl_ListObjAppendElement(interp, resultPtr, pathPtr);
+	}
+	Tcl_DecrRefCount(tailPtr);
+	Tcl_DecrRefCount(fileNamePtr);
+    } else {
+	DIR *d;
+	Tcl_DirEntry *entryPtr;
+	CONST char *dirName;
+	int dirLength;
+	int matchHidden, matchHiddenPat;
+	int nativeDirLen;
+	Tcl_StatBuf statBuf;
+	Tcl_DString ds;		/* native encoding of dir */
+	Tcl_DString dsOrig;	/* utf-8 encoding of dir */
+
+	Tcl_DStringInit(&dsOrig);
+	dirName = Tcl_GetStringFromObj(fileNamePtr, &dirLength);
+	Tcl_DStringAppend(&dsOrig, dirName, dirLength);
+
+	/*
+	 * Make sure that the directory part of the name really is a
+	 * directory.  If the directory name is "", use the name "." instead,
+	 * because some UNIX systems don't treat "" like "." automatically.
+	 * Keep the "" for use in generating file names, otherwise "glob
+	 * foo.c" would return "./foo.c".
+	 */
+
+	if (dirLength == 0) {
+	    dirName = ".";
+	} else {
+	    dirName = Tcl_DStringValue(&dsOrig);
+
+	    /*
+	     * Make sure we have a trailing directory delimiter.
+	     */
+
+	    if (dirName[dirLength-1] != '/') {
+		dirName = Tcl_DStringAppend(&dsOrig, "/", 1);
+		dirLength++;
+	    }
+	}
+
+	/*
+	 * Now open the directory for reading and iterate over the contents.
+	 */
+
+	native = Tcl_UtfToExternalDString(NULL, dirName, -1, &ds);
+
+	if ((TclOSstat(native, &statBuf) != 0)		/* INTL: Native. */
+		|| !S_ISDIR(statBuf.st_mode)) {
+	    Tcl_DStringFree(&dsOrig);
+	    Tcl_DStringFree(&ds);
+	    Tcl_DecrRefCount(fileNamePtr);
+	    return TCL_OK;
+	}
+
+	d = opendir(native);				/* INTL: Native. */
+	if (d == NULL) {
+	    Tcl_DStringFree(&ds);
+	    if (interp != NULL) {
+		Tcl_R
